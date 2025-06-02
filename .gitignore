@@ -1,0 +1,13 @@
+# Ignorar entornos virtuales
+env/
+venv/
+
+# Python y otros
+__pycache__/
+*.pyc
+*.pyd
+*.dll
+*.log
+.vscode/
+.idea/
+.env

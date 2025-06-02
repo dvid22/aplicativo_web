@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Registrarse{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-5">
+    <div class="card shadow">
+      <div class="card-header bg-success text-white text-center">
+        <h4><i class="fas fa-user-plus"></i> Crear cuenta</h4>
+      </div>
+      <div class="card-body">
+        <form method="POST">
+          <input name="username" class="form-control mb-3" placeholder="Usuario" required>
+          <input name="email" type="email" class="form-control mb-3" placeholder="Correo" required>
+          <input name="password" type="password" class="form-control mb-3" placeholder="Contraseña" required>
+          <button class="btn btn-success w-100">Registrarse</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

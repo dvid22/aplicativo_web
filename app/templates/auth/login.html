@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Iniciar sesión{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-5">
+    <div class="card shadow">
+      <div class="card-header bg-primary text-white text-center">
+        <h4><i class="fas fa-sign-in-alt"></i> Iniciar sesión</h4>
+      </div>
+      <div class="card-body">
+        <form method="POST">
+          <input name="username" class="form-control mb-3" placeholder="Usuario" required>
+          <input name="password" type="password" class="form-control mb-3" placeholder="Contraseña" required>
+          <button class="btn btn-primary w-100">Entrar</button>
+        </form>
+        <hr>
+        <a href="{{ url_for('oauth.login_google') }}" class="btn btn-danger w-100">
+          <i class="fab fa-google"></i> Iniciar con Google
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,101 @@
+/* Estilo general */
+body {
+  background: linear-gradient(to right, #f8f9fa, #e9ecef);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #343a40;
+  padding-top: 20px;
+}
+
+/* Navbar */
+.navbar {
+  background-color: #007bff !important;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+.navbar-brand {
+  font-weight: bold;
+  font-size: 1.3rem;
+}
+.nav-link {
+  font-weight: 500;
+}
+
+/* Tarjetas de formularios */
+.card {
+  border: none;
+  border-radius: 15px;
+  overflow: hidden;
+  box-shadow: 0 5px 15px rgba(0, 123, 255, 0.15);
+}
+.card-header {
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+/* Botones personalizados */
+.btn {
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+.btn:hover {
+  transform: translateY(-1px);
+}
+.btn-primary {
+  background-color: #0069d9;
+}
+.btn-outline-primary:hover {
+  background-color: #007bff;
+  color: white;
+}
+.btn-success {
+  background-color: #28a745;
+}
+.btn-danger {
+  background-color: #dc3545;
+}
+
+/* Formulario */
+.form-control {
+  border-radius: 10px;
+  border: 1px solid #ced4da;
+}
+
+/* Secciones de información */
+h3 {
+  margin-top: 20px;
+  color: #0056b3;
+}
+p, li {
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+/* Imágenes */
+img {
+  max-width: 100%;
+  border-radius: 10px;
+}
+
+/* Video */
+video {
+  border: 3px solid #007bff;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 123, 255, 0.2);
+}
+
+/* Texto del reconocimiento */
+#recognizedText {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #0062cc;
+}
+
+/* Footer opcional */
+footer {
+  padding: 1rem;
+  text-align: center;
+  background-color: #f1f1f1;
+  margin-top: 3rem;
+  border-top: 1px solid #ccc;
+  font-size: 0.9rem;
+  color: #666;
+}
