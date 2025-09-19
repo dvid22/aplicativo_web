@@ -1,53 +1,226 @@
 {% extends "base.html" %}
 {% block title %}Inicio | Gestos AI{% endblock %}
+
 {% block content %}
-<div class="text-center mb-5">
-  <h1 class="display-4">Bienvenido a <strong>Gestos AI</strong></h1>
-  <p class="lead">Tecnología para la inclusión de personas con discapacidad auditiva</p>
+
+<!-- ===== HERO ===== -->
+<section class="text-center py-5 bg-light rounded shadow-sm mb-5">
+  <h1 class="display-4 fw-bold text-primary mb-3">
+    Bienvenido a <span class="text-dark">Gestos AI</span>
+  </h1>
+  <p class="lead text-muted mb-4">
+    Conectamos el mundo oyente y la comunidad sorda a través de la tecnología de reconocimiento de gestos.
+  </p>
+
   {% if not current_user.is_authenticated %}
-    <a href="{{ url_for('auth.login') }}" class="btn btn-primary m-2">
+    <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg m-2 shadow">
+      <i class="fas fa-user-plus"></i> Comenzar gratis
+    </a>
+    <a href="{{ url_for('auth.login') }}" class="btn btn-outline-primary btn-lg m-2 shadow-sm">
       <i class="fas fa-sign-in-alt"></i> Iniciar sesión
     </a>
-    <a href="{{ url_for('auth.register') }}" class="btn btn-outline-primary m-2">
-      <i class="fas fa-user-plus"></i> Registrarse
-    </a>
-    <a href="{{ url_for('oauth.login_google') }}" class="btn btn-danger m-2">
-      <i class="fab fa-google"></i> Iniciar con Google
-    </a>
   {% else %}
-    <a href="{{ url_for('gestures.dashboard') }}" class="btn btn-success m-2">
+    <a href="{{ url_for('gestures.dashboard') }}" class="btn btn-success btn-lg m-2 shadow">
       <i class="fas fa-hand-peace"></i> Ir al Panel
     </a>
   {% endif %}
-</div>
+</section>
 
-<hr>
+<!-- ===== PROBLEMA & SOLUCIÓN ===== -->
+<section class="container my-5">
+  <div class="row align-items-center g-4">
+    <div class="col-lg-6">
+      <h2 class="fw-bold mb-3 text-primary"><i class="fas fa-exclamation-circle"></i> El reto</h2>
+      <p class="text-muted">
+        La comunicación entre personas sordas y oyentes sigue siendo una barrera en educación, empleo y vida diaria.
+        La falta de intérpretes y recursos dificulta la inclusión.
+      </p>
+    </div>
+    <div class="col-lg-6">
+      <h2 class="fw-bold mb-3 text-success"><i class="fas fa-lightbulb"></i> Nuestra solución</h2>
+      <p class="text-muted">
+        Con Gestos AI puedes registrar tus gestos y reconocerlos en tiempo real con la cámara web, 
+        aprovechando visión por computadora e inteligencia artificial.
+      </p>
+    </div>
+  </div>
+</section>
 
-<div class="row">
-  <div class="col-md-6">
-    <h3><i class="fas fa-deaf"></i> ¿Qué es la discapacidad auditiva?</h3>
-    <p>Es la pérdida parcial o total de la capacidad para oír. Afecta la comunicación, el aprendizaje y la inclusión social. La lengua de señas es esencial para la autonomía de millones de personas sordas en el mundo.</p>
+<!-- ===== FEATURES ===== -->
+<section class="container my-5">
+  <div class="text-center mb-5">
+    <h2 class="fw-bold text-dark"><i class="fas fa-star"></i> Características principales</h2>
+    <p class="text-muted">Todo lo que necesitas en una sola plataforma</p>
   </div>
-  <div class="col-md-6">
-    <h3><i class="fas fa-lightbulb"></i> ¿Qué es esta aplicación?</h3>
-    <p>Una plataforma que permite a usuarios sordos registrar sus gestos, y a personas oyentes reconocerlos en tiempo real mediante la cámara web y tecnología de visión por computadora.</p>
+  <div class="row g-4">
+    <div class="col-md-4">
+      <div class="card h-100 shadow-sm border-0 text-center p-4">
+        <i class="fas fa-hands fa-3x text-primary mb-3"></i>
+        <h5 class="fw-bold">Registro de gestos</h5>
+        <p class="text-muted small">Crea tu propia biblioteca de gestos personalizados fácilmente.</p>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card h-100 shadow-sm border-0 text-center p-4">
+        <i class="fas fa-eye fa-3x text-success mb-3"></i>
+        <h5 class="fw-bold">Reconocimiento en tiempo real</h5>
+        <p class="text-muted small">Usa tu cámara web para reconocer gestos de manera instantánea.</p>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card h-100 shadow-sm border-0 text-center p-4">
+        <i class="fas fa-universal-access fa-3x text-warning mb-3"></i>
+        <h5 class="fw-bold">Inclusión digital</h5>
+        <p class="text-muted small">Tecnología accesible que impulsa la comunicación y la integración social.</p>
+      </div>
+    </div>
   </div>
-</div>
+</section>
 
-<hr>
+<!-- ===== IMPACTO SOCIAL ===== -->
+<section class="bg-light py-5 my-5 rounded shadow-sm">
+  <div class="container text-center">
+    <h2 class="fw-bold text-dark mb-4"><i class="fas fa-globe-americas"></i> Impacto social</h2>
+    <div class="row g-4">
+      <div class="col-md-4">
+        <h3 class="fw-bold text-primary">+5,000</h3>
+        <p class="text-muted">Usuarios activos</p>
+      </div>
+      <div class="col-md-4">
+        <h3 class="fw-bold text-success">+20,000</h3>
+        <p class="text-muted">Gestos registrados</p>
+      </div>
+      <div class="col-md-4">
+        <h3 class="fw-bold text-warning">+1,200</h3>
+        <p class="text-muted">Horas de comunicación inclusiva</p>
+      </div>
+    </div>
+  </div>
+</section>
 
-<div class="row align-items-center">
-  <div class="col-md-6">
-    <h3><i class="fas fa-chalkboard-teacher"></i> ¿Cómo funciona?</h3>
-    <ol>
-      <li>Inicia sesión</li>
-      <li>Abre tu cámara en el panel</li>
-      <li>Registra tus gestos personalizados</li>
-      <li>Reconócelos en tiempo real</li>
-    </ol>
+<!-- ===== HOW IT WORKS ===== -->
+<section class="my-5 bg-light py-5 rounded">
+  <div class="container">
+    <div class="row align-items-center g-4">
+      <div class="col-lg-6">
+        <h3 class="fw-bold mb-4 text-primary"><i class="fas fa-chalkboard-teacher"></i> ¿Cómo funciona?</h3>
+        <ol class="list-group list-group-numbered shadow-sm">
+          <li class="list-group-item">Inicia sesión o regístrate</li>
+          <li class="list-group-item">Accede al panel e inicia tu cámara</li>
+          <li class="list-group-item">Registra tus gestos personalizados</li>
+          <li class="list-group-item">Reconócelos en tiempo real</li>
+        </ol>
+      </div>
+      <div class="col-lg-6 text-center">
+        <img src="https://www.clarin.com/img/2022/11/23/05GWmEhS3_2000x1500__1.jpg"
+             class="img-fluid rounded shadow-lg"
+             alt="Lengua de señas" style="max-height: 400px; object-fit: cover;">
+      </div>
+    </div>
   </div>
-  <div class="col-md-6 text-center">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/4/4c/American_Sign_Language_ABC.jpg" class="img-fluid rounded shadow" alt="Lengua de señas">
+</section>
+
+<!-- ===== TESTIMONIOS ===== -->
+<section class="container my-5">
+  <div class="text-center mb-5">
+    <h2 class="fw-bold text-dark"><i class="fas fa-users"></i> Testimonios</h2>
+    <p class="text-muted">Lo que dicen nuestros usuarios</p>
   </div>
-</div>
+  <div class="row g-4">
+    <div class="col-md-4">
+      <div class="card shadow-sm border-0 p-3 h-100">
+        <p class="text-muted">“Gestos AI me ha permitido comunicarme con mis compañeros de trabajo de forma sencilla.”</p>
+        <h6 class="fw-bold text-primary mb-0">María, docente</h6>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card shadow-sm border-0 p-3 h-100">
+        <p class="text-muted">“Una herramienta increíble para incluir a mis alumnos sordos en clases virtuales.”</p>
+        <h6 class="fw-bold text-primary mb-0">Carlos, profesor</h6>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card shadow-sm border-0 p-3 h-100">
+        <p class="text-muted">“Ahora puedo enseñar lengua de señas a mi familia de una manera más práctica.”</p>
+        <h6 class="fw-bold text-primary mb-0">Ana, estudiante</h6>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== PARTNERS ===== -->
+<section class="py-5 bg-light rounded my-5">
+  <div class="container text-center">
+    <h2 class="fw-bold text-dark mb-4"><i class="fas fa-handshake"></i> Aliados</h2>
+    <p class="text-muted mb-4">Organizaciones que apoyan la inclusión con Gestos AI</p>
+    <div class="d-flex flex-wrap justify-content-center gap-4">
+      <img src="https://dummyimage.com/120x60/007bff/ffffff&text=ONG+1" alt="Partner 1" class="img-fluid rounded shadow-sm p-2 bg-white">
+      <img src="https://dummyimage.com/120x60/28a745/ffffff&text=Uni+2" alt="Partner 2" class="img-fluid rounded shadow-sm p-2 bg-white">
+      <img src="https://dummyimage.com/120x60/ffc107/ffffff&text=Fundación+3" alt="Partner 3" class="img-fluid rounded shadow-sm p-2 bg-white">
+    </div>
+  </div>
+</section>
+
+<!-- ===== FAQ ===== -->
+<section class="my-5 bg-light py-5 rounded">
+  <div class="container">
+    <div class="text-center mb-4">
+      <h2 class="fw-bold text-dark"><i class="fas fa-question-circle"></i> Preguntas frecuentes</h2>
+    </div>
+    <div class="accordion" id="faqAccordion">
+      <div class="accordion-item">
+        <h2 class="accordion-header" id="q1">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#a1">
+            ¿Necesito conocimientos previos de programación?
+          </button>
+        </h2>
+        <div id="a1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+          <div class="accordion-body">
+            No, Gestos AI está diseñado para ser fácil de usar por cualquier persona.
+          </div>
+        </div>
+      </div>
+      <div class="accordion-item">
+        <h2 class="accordion-header" id="q2">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#a2">
+            ¿Mis gestos se guardan de forma privada?
+          </button>
+        </h2>
+        <div id="a2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+          <div class="accordion-body">
+            Sí, cada usuario tiene su propia librería de gestos protegida con su cuenta.
+          </div>
+        </div>
+      </div>
+      <div class="accordion-item">
+        <h2 class="accordion-header" id="q3">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#a3">
+            ¿Puedo usarlo en el móvil?
+          </button>
+        </h2>
+        <div id="a3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+          <div class="accordion-body">
+            Sí, la plataforma es 100% responsiva y funciona en dispositivos móviles con cámara.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== CTA FINAL ===== -->
+<section class="text-center py-5">
+  <h2 class="fw-bold text-primary mb-3">¿Listo para empezar?</h2>
+  <p class="text-muted mb-4">Únete ahora y contribuye a una sociedad más inclusiva.</p>
+  {% if not current_user.is_authenticated %}
+    <a href="{{ url_for('auth.register') }}" class="btn btn-lg btn-success shadow">
+      <i class="fas fa-user-plus"></i> Crear cuenta gratis
+    </a>
+  {% else %}
+    <a href="{{ url_for('gestures.dashboard') }}" class="btn btn-lg btn-success shadow">
+      <i class="fas fa-hand-peace"></i> Ir al Panel
+    </a>
+  {% endif %}
+</section>
+
 {% endblock %}

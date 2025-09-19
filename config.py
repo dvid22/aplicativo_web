@@ -8,4 +8,5 @@ class Config:
     MONGO_URI = os.getenv("MONGO_URI")
     GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
     GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
-
+    HEYGEN_API_KEY = os.getenv("HEYGEN_API_KEY")
+    HEYGEN_AVATAR_ID = os.getenv("HEYGEN_AVATAR_ID")

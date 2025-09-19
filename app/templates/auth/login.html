@@ -1,22 +1,48 @@
 {% extends "base.html" %}
-{% block title %}Iniciar sesión{% endblock %}
+{% block title %}Iniciar sesión | Gestos AI{% endblock %}
+
 {% block content %}
-<div class="row justify-content-center">
-  <div class="col-md-5">
-    <div class="card shadow">
-      <div class="card-header bg-primary text-white text-center">
-        <h4><i class="fas fa-sign-in-alt"></i> Iniciar sesión</h4>
+<div class="row justify-content-center align-items-center" style="min-height: 70vh;">
+  <div class="col-md-6 col-lg-4">
+    <div class="card shadow-lg border-0">
+      <div class="card-header bg-primary text-white text-center py-3">
+        <h4 class="mb-0 fw-bold"><i class="fas fa-sign-in-alt"></i> Iniciar sesión</h4>
       </div>
-      <div class="card-body">
+      <div class="card-body p-4">
         <form method="POST">
-          <input name="username" class="form-control mb-3" placeholder="Usuario" required>
-          <input name="password" type="password" class="form-control mb-3" placeholder="Contraseña" required>
-          <button class="btn btn-primary w-100">Entrar</button>
+          <!-- Usuario -->
+          <div class="input-group mb-3">
+            <span class="input-group-text bg-light"><i class="fas fa-user"></i></span>
+            <input name="username" class="form-control" placeholder="Usuario" required>
+          </div>
+          <!-- Contraseña -->
+          <div class="input-group mb-4">
+            <span class="input-group-text bg-light"><i class="fas fa-lock"></i></span>
+            <input name="password" type="password" class="form-control" placeholder="Contraseña" required>
+          </div>
+          <!-- Botón de login -->
+          <button class="btn btn-primary w-100 mb-3">
+            <i class="fas fa-sign-in-alt"></i> Entrar
+          </button>
         </form>
-        <hr>
-        <a href="{{ url_for('oauth.login_google') }}" class="btn btn-danger w-100">
+
+        <!-- Separador -->
+        <div class="d-flex align-items-center my-3">
+          <hr class="flex-grow-1">
+          <span class="mx-2 text-muted small">o</span>
+          <hr class="flex-grow-1">
+        </div>
+
+        <!-- Google login -->
+        <a href="{{ url_for('oauth.login_google') }}" class="btn btn-danger w-100 mb-3">
           <i class="fab fa-google"></i> Iniciar con Google
         </a>
+
+        <!-- Registro -->
+        <p class="text-center small mb-0">
+          ¿No tienes cuenta? 
+          <a href="{{ url_for('auth.register') }}" class="fw-bold text-primary">Regístrate aquí</a>
+        </p>
       </div>
     </div>
   </div>

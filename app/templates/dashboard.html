@@ -1,39 +1,510 @@
 {% extends "base.html" %}
-{% block title %}Panel de Usuario{% endblock %}
+{% block title %}Panel de Gestos | Gestos AI{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-  <h2 class="text-center mb-4"><i class="fas fa-camera"></i> Reconocimiento de Gestos</h2>
+<div class="container py-4">
+  <h1 class="text-center mb-4 text-primary fw-bold">
+    <i class="fas fa-hands"></i> Comunicación Inclusiva
+  </h1>
 
-  <div class="row">
-    <!-- Sección de video y reconocimiento -->
-    <div class="col-md-6 text-center">
-      <video id="video" autoplay playsinline class="rounded border border-primary" width="100%" height="auto"></video>
-
-      <button class="btn btn-outline-success w-100 mt-3" onclick="recognizeGesture()">
-        <i class="fas fa-eye"></i> Reconocer gesto
-      </button>
-
-      <div class="mt-3">
-        <h5 class="text-secondary" id="recognizedText">Esperando gesto...</h5>
-      </div>
-    </div>
-
-    <!-- Sección de registro -->
-    <div class="col-md-6">
-      <div class="card shadow-sm p-3">
-        <h5 class="mb-3"><i class="fas fa-plus-circle"></i> Registrar nuevo gesto:</h5>
-        <input id="gestureName" class="form-control mb-3" placeholder="Nombre del gesto">
-        <button class="btn btn-warning w-100" onclick="registerGesture()">
-          <i class="fas fa-save"></i> Guardar gesto
-        </button>
+  <!-- Modos -->
+  <div class="row mb-4">
+    <div class="col-md-12">
+      <div class="card">
+        <div class="card-body text-center">
+          <div class="btn-group" role="group">
+            <button type="button" class="btn btn-outline-primary active" id="modeChat">
+              <i class="fas fa-comments"></i> Modo Conversación
+            </button>
+            <button type="button" class="btn btn-outline-success" id="modeRecognition">
+              <i class="fas fa-hand-point-up"></i> Reconocer Gestos
+            </button>
+            <button type="button" class="btn btn-outline-info" id="modeRegister">
+              <i class="fas fa-plus-circle"></i> Registrar Gestos
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
+
+  <!-- CHAT -->
+  <div id="chatSection">
+    <div class="card shadow border-0 mb-4">
+      <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="fas fa-comments"></i> Conversación</h5>
+      </div>
+      <div class="card-body">
+        <div id="chatHistory" class="mb-3" style="height:300px; overflow-y:auto; background:#f8f9fa; border-radius:12px; padding:1rem;">
+          <div class="text-muted text-center py-4">El historial de conversación aparecerá aquí</div>
+        </div>
+
+        <div class="input-group">
+          <input id="chatInput" type="text" class="form-control" placeholder="Escribe un mensaje...">
+          <select id="voiceSelect" class="form-select" style="max-width:150px;">
+            <option value="male">Voz masculina</option>
+            <option value="female">Voz femenina</option>
+          </select>
+          <button id="sendChat" class="btn btn-primary"><i class="fas fa-paper-plane"></i> Enviar</button>
+          <button id="voiceBtn" class="btn btn-success"><i class="fas fa-microphone"></i> Voz</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="avatarPreview" class="mb-4">
+      <div class="card">
+        <div class="card-header bg-info text-white">
+          <h5 class="mb-0"><i class="fas fa-user"></i> Avatar</h5>
+        </div>
+        <div class="card-body text-center">
+          <video id="avatarVideo" controls autoplay playsinline width="100%" class="rounded shadow" style="max-width: 460px;"></video>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RECONOCIMIENTO -->
+  <div id="recognitionSection" class="d-none mb-4">
+    <div class="card shadow border-0">
+      <div class="card-header bg-success text-white">
+        <h5 class="mb-0"><i class="fas fa-hand-point-up"></i> Reconocimiento de Gestos</h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-6">
+            <div class="camera-container mb-3">
+              <video id="recognitionVideo" autoplay playsinline width="100%" class="rounded border"></video>
+              <canvas id="recognitionCanvas" class="d-none"></canvas>
+            </div>
+            <div class="d-flex justify-content-center">
+              <button id="startRecognition" class="btn btn-success me-2"><i class="fas fa-play"></i> Iniciar</button>
+              <button id="stopRecognition" class="btn btn-danger" disabled><i class="fas fa-stop"></i> Detener</button>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h6 class="mb-0">Resultados en Tiempo Real</h6>
+              </div>
+              <div class="card-body">
+                <div id="recognitionResults" style="height:200px; overflow-y:auto;">
+                  <p class="text-muted text-center">Los resultados aparecerán aquí</p>
+                </div>
+                <div class="mt-3">
+                  <h6>Gestos Predefinidos:</h6>
+                  <div class="d-flex flex-wrap gap-2">
+                    <span class="badge bg-primary">Hola</span>
+                    <span class="badge bg-primary">Gracias</span>
+                    <span class="badge bg-primary">Sí</span>
+                    <span class="badge bg-primary">No</span>
+                    <span class="badge bg-primary">Comida</span>
+                    <span class="badge bg-primary">Agua</span>
+                    <span class="badge bg-primary">Ayuda</span>
+                    <span class="badge bg-primary">Baño</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div> 
+    </div>
+  </div>
+
+  <!-- REGISTRO -->
+  <div id="registerSection" class="d-none mb-4">
+    <div class="card shadow border-0">
+      <div class="card-header bg-info text-white">
+        <h5 class="mb-0"><i class="fas fa-plus-circle"></i> Registrar Nuevo Gesto</h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-6">
+            <div class="camera-container mb-3">
+              <video id="registerVideo" autoplay playsinline width="100%" class="rounded border"></video>
+              <canvas id="registerCanvas" class="d-none"></canvas>
+            </div>
+
+            <div class="mb-3">
+              <label for="gestureName" class="form-label">Nombre del Gesto</label>
+              <input type="text" class="form-control" id="gestureName" placeholder="Ej. 'Feliz', 'Comida'">
+            </div>
+
+            <div class="d-flex justify-content-center gap-2 mb-3">
+              <button id="startRecording" class="btn btn-success"><i class="fas fa-record-vinyl"></i> Grabar</button>
+              <button id="stopRecording" class="btn btn-danger" disabled><i class="fas fa-stop"></i> Parar</button>
+              <button id="previewRecording" class="btn btn-info" disabled><i class="fas fa-eye"></i> Previsualizar</button>
+              <button id="saveRecording" class="btn btn-primary" disabled><i class="fas fa-save"></i> Guardar</button>
+            </div>
+
+            <div class="progress mb-2">
+              <div id="recordingProgress" class="progress-bar" role="progressbar" style="width: 0%"></div>
+            </div>
+            <p id="recordingStatus" class="text-muted">Listo para grabar</p>
+          </div>
+
+          <div class="col-md-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h6 class="mb-0">Instrucciones</h6>
+              </div>
+              <div class="card-body">
+                <ol>
+                  <li>Escribe un nombre descriptivo para el gesto</li>
+                  <li>Haz clic en "Grabar" y realiza el gesto frente a la cámara</li>
+                  <li>Asegúrate de que tus manos y rostro sean visibles</li>
+                  <li>Mantén el gesto por al menos 2-4 segundos</li>
+                  <li>Haz clic en "Parar" cuando termines</li>
+                  <li>Previsualiza y guarda si estás satisfecho</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/webcam.js') }}"></script>
-{% endblock %}
+<script>
+/* ================== Utilidades UI ================== */
+function appendMessage(sender, text) {
+  const chatHistory = document.getElementById("chatHistory");
+  const div = document.createElement("div");
+  div.classList.add("mb-2");
+  if (sender === "yo") {
+    div.innerHTML = `<div class="p-2 rounded bg-primary text-white text-end"><strong>Tú:</strong> ${text}</div>`;
+  } else {
+    div.innerHTML = `<div class="p-2 rounded bg-light"><strong>Sistema:</strong> ${text}</div>`;
+  }
+  chatHistory.appendChild(div);
+  chatHistory.scrollTop = chatHistory.scrollHeight;
+}
 
+/* ================== Modos ================== */
+const modeChat = document.getElementById("modeChat");
+const modeRecognition = document.getElementById("modeRecognition");
+const modeRegister = document.getElementById("modeRegister");
+const chatSection = document.getElementById("chatSection");
+const recognitionSection = document.getElementById("recognitionSection");
+const registerSection = document.getElementById("registerSection");
+
+function setActiveMode(btn, section) {
+  [modeChat, modeRecognition, modeRegister].forEach(b=>b.classList.remove("active"));
+  [chatSection, recognitionSection, registerSection].forEach(s=>s.classList.add("d-none"));
+  btn.classList.add("active");
+  section.classList.remove("d-none");
+
+  // detener procesos si hay
+  stopRecognitionProcess();
+  stopRecordingProcess();
+}
+
+modeChat.addEventListener("click", ()=> setActiveMode(modeChat, chatSection));
+modeRecognition.addEventListener("click", ()=> setActiveMode(modeRecognition, recognitionSection));
+modeRegister.addEventListener("click", ()=> setActiveMode(modeRegister, registerSection));
+
+/* ================== Chat & Avatar ================== */
+const chatInput = document.getElementById("chatInput");
+const sendChat = document.getElementById("sendChat");
+const voiceBtn = document.getElementById("voiceBtn");
+const voiceSelect = document.getElementById("voiceSelect");
+const avatarVideo = document.getElementById("avatarVideo");
+
+async function sendTextToAvatar(text) {
+  if (!text || !text.trim()) return;
+  appendMessage("yo", text);
+  try {
+    const res = await fetch("/api/avatar", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ text, voice: voiceSelect.value })
+    });
+    const data = await res.json();
+    if (data.success && data.video_url) {
+      // puede venir video_url o fallback
+      avatarVideo.src = data.video_url || data.fallback || data.video_url;
+      appendMessage("sistema", `Avatar mostrando gesto para: "${text}"`);
+      // guardar en server
+      await fetch("/api/chat", {method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({sender:"user", text})});
+    } else {
+      const fallback = data.fallback || "/static/avatar_placeholder.mp4";
+      avatarVideo.src = fallback;
+      appendMessage("sistema", `No se pudo generar avatar: ${data.error || 'error'}`);
+    }
+  } catch (err) {
+    console.error("Avatar error:", err);
+    appendMessage("sistema", "Error de conexión al generar avatar.");
+  }
+}
+
+sendChat.addEventListener("click", ()=> sendTextToAvatar(chatInput.value.trim()));
+chatInput.addEventListener("keypress", (e)=> { if (e.key === "Enter") sendTextToAvatar(chatInput.value.trim()); });
+
+voiceBtn.addEventListener("click", ()=> {
+  if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+    appendMessage("sistema", "Tu navegador no soporta reconocimiento de voz.");
+    return;
+  }
+  const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const rec = new Recognition();
+  rec.lang = "es-ES";
+  rec.onresult = (ev) => {
+    const text = ev.results[0][0].transcript;
+    chatInput.value = text;
+    sendTextToAvatar(text);
+  };
+  rec.onerror = (ev) => appendMessage("sistema", "Error reconocimiento voz: " + ev.error);
+  rec.start();
+});
+
+/* Carga historial */
+async function loadChatHistory() {
+  try {
+    const r = await fetch("/api/chat_history");
+    if (!r.ok) return;
+    const j = await r.json();
+    if (j.success && Array.isArray(j.history)) {
+      document.getElementById("chatHistory").innerHTML = "";
+      j.history.forEach(m => {
+        appendMessage(m.sender === "user" ? "yo" : "sistema", m.text);
+      });
+    }
+  } catch (e) {
+    console.error("Error cargando historial:", e);
+  }
+}
+document.addEventListener("DOMContentLoaded", loadChatHistory);
+
+/* ================== Reconocimiento ================== */
+const recognitionVideo = document.getElementById("recognitionVideo");
+const recognitionCanvas = document.getElementById("recognitionCanvas");
+const startRecognitionBtn = document.getElementById("startRecognition");
+const stopRecognitionBtn = document.getElementById("stopRecognition");
+const recognitionResults = document.getElementById("recognitionResults");
+
+let recognitionStream = null;
+let recognitionInterval = null;
+let recognitionActive = false;
+
+startRecognitionBtn.addEventListener("click", startRecognitionProcess);
+stopRecognitionBtn.addEventListener("click", stopRecognitionProcess);
+
+async function startRecognitionProcess(){
+  startRecognitionBtn.disabled = true;
+  stopRecognitionBtn.disabled = false;
+  recognitionActive = true;
+  recognitionResults.innerHTML = '<p class="text-center text-success">Iniciando cámara...</p>';
+  try {
+    recognitionStream = await navigator.mediaDevices.getUserMedia({video:{width:640,height:480}, audio:false});
+    recognitionVideo.srcObject = recognitionStream;
+    recognitionInterval = setInterval(captureRecognitionFrame, 500); // 500ms
+  } catch (err) {
+    console.error("camera error:", err);
+    recognitionResults.innerHTML = '<p class="text-center text-danger">No se pudo acceder a la cámara.</p>';
+    startRecognitionBtn.disabled = false;
+    stopRecognitionBtn.disabled = true;
+  }
+}
+
+function stopRecognitionProcess(){
+  recognitionActive = false;
+  startRecognitionBtn.disabled = false;
+  stopRecognitionBtn.disabled = true;
+  clearInterval(recognitionInterval);
+  if (recognitionStream) {
+    recognitionStream.getTracks().forEach(t=>t.stop());
+    recognitionVideo.srcObject = null;
+    recognitionStream = null;
+  }
+  recognitionResults.innerHTML = '<p class="text-center text-muted">Reconocimiento detenido</p>';
+}
+
+async function captureRecognitionFrame(){
+  if (!recognitionActive) return;
+  const canvas = recognitionCanvas;
+  const video = recognitionVideo;
+  if (!video.videoWidth || !video.videoHeight) return;
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  const dataUrl = canvas.toDataURL("image/jpeg");
+  try {
+    const res = await fetch("/api/continuous_recognition", {
+      method: "POST", headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ frames: [dataUrl] })
+    });
+    const j = await res.json();
+    if (j.success && j.found) {
+      recognitionResults.innerHTML = `<div class="alert alert-success"><strong>Gesto:</strong> ${j.gesture} <br><small>Similitud: ${(j.similarity*100).toFixed(1)}% | Tipo: ${j.type}</small></div>`;
+      appendMessage("sistema", `Gesto reconocido: ${j.gesture}`);
+      // opcional: mostrar avatar automáticamente para ese gesto
+      // fetch avatar for the recognized gesture (text->avatar)
+      await fetch("/api/avatar", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({text: j.gesture, voice: "male"})});
+    } else {
+      recognitionResults.innerHTML = '<p class="text-center">No se reconoce gesto</p>';
+    }
+  } catch (err) {
+    console.error("recognition error:", err);
+    recognitionResults.innerHTML = '<p class="text-center text-danger">Error conexión servidor</p>';
+  }
+}
+
+/* ================== Registro de gestos (frames) ================== */
+const registerVideo = document.getElementById("registerVideo");
+const registerCanvas = document.getElementById("registerCanvas");
+const startRecordingBtn = document.getElementById("startRecording");
+const stopRecordingBtn = document.getElementById("stopRecording");
+const previewBtn = document.getElementById("previewRecording");
+const saveBtn = document.getElementById("saveRecording");
+const gestureName = document.getElementById("gestureName");
+const recordingProgress = document.getElementById("recordingProgress");
+const recordingStatus = document.getElementById("recordingStatus");
+
+let registerStream = null;
+let recordedFrames = [];
+let recordTimer = null;
+let recordingStart = null;
+
+startRecordingBtn.addEventListener("click", startRecordingProcess);
+stopRecordingBtn.addEventListener("click", stopRecordingProcess);
+previewBtn.addEventListener("click", previewRecordingProcess);
+saveBtn.addEventListener("click", saveRecordingProcess);
+
+async function startRecordingProcess() {
+  if (!gestureName.value.trim()) { alert("Ingresa nombre del gesto"); return; }
+  startRecordingBtn.disabled = true;
+  stopRecordingBtn.disabled = false;
+  previewBtn.disabled = true;
+  saveBtn.disabled = true;
+  recordedFrames = [];
+  recordingStatus.textContent = "Grabando...";
+  recordingProgress.style.width = "0%";
+  try {
+    registerStream = await navigator.mediaDevices.getUserMedia({video:{width:640,height:480}, audio:false});
+    registerVideo.srcObject = registerStream;
+    recordingStart = Date.now();
+    // cada 100ms captura frame
+    recordTimer = setInterval(() => {
+      captureRegisterFrame();
+      const elapsed = (Date.now() - recordingStart) / 1000;
+      const pct = Math.min(100, (elapsed / 4) * 100); // 4s target
+      recordingProgress.style.width = pct + "%";
+      if (elapsed >= 6) { // límite 6s
+        stopRecordingProcess();
+      }
+    }, 100);
+  } catch (err) {
+    console.error("startRecord error", err);
+    recordingStatus.textContent = "Error accediendo cámara";
+    startRecordingBtn.disabled = false;
+    stopRecordingBtn.disabled = true;
+  }
+}
+
+function captureRegisterFrame(){
+  const canvas = registerCanvas;
+  const video = registerVideo;
+  if (!video.videoWidth || !video.videoHeight) return;
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  recordedFrames.push(canvas.toDataURL("image/jpeg"));
+}
+
+function stopRecordingProcess(){
+  clearInterval(recordTimer);
+  if (registerStream) {
+    registerStream.getTracks().forEach(t=>t.stop());
+    registerVideo.srcObject = null;
+    registerStream = null;
+  }
+  recordingStatus.textContent = `Grabación lista (${recordedFrames.length} frames)`;
+  previewBtn.disabled = recordedFrames.length === 0;
+  saveBtn.disabled = recordedFrames.length === 0;
+  startRecordingBtn.disabled = false;
+  stopRecordingBtn.disabled = true;
+}
+
+function previewRecordingProcess(){
+  if (recordedFrames.length === 0) { alert("No hay frames"); return; }
+  // Modal preview
+  const modal = document.createElement("div");
+  modal.className = "modal fade";
+  modal.innerHTML = `
+    <div class="modal-dialog modal-lg"><div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">Previsualización: ${gestureName.value}</h5>
+      <button class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body text-center"><div id="previewArea"></div></div>
+      <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button></div>
+    </div></div>
+  `;
+  document.body.appendChild(modal);
+  const bsModal = new bootstrap.Modal(modal);
+  bsModal.show();
+
+  const area = modal.querySelector("#previewArea");
+  const img = document.createElement("img");
+  img.style.width = "100%"; img.style.height = "400px"; img.style.objectFit = "contain";
+  area.appendChild(img);
+
+  let i = 0;
+  const it = setInterval(()=> {
+    img.src = recordedFrames[i];
+    i = (i+1) % recordedFrames.length;
+  }, 120);
+
+  modal.addEventListener("hidden.bs.modal", ()=> {
+    clearInterval(it);
+    document.body.removeChild(modal);
+  });
+}
+
+async function saveRecordingProcess(){
+  if (!gestureName.value.trim()) { alert("Nombre requerido"); return; }
+  if (recordedFrames.length === 0) { alert("No hay frames para guardar"); return; }
+  recordingStatus.textContent = "Enviando al servidor...";
+  try {
+    const res = await fetch("/api/register_sequence", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ name: gestureName.value.trim(), frames: recordedFrames })
+    });
+    const j = await res.json();
+    if (j.success) {
+      recordingStatus.textContent = `Gesto "${j.name}" guardado (${j.n_frames} frames)`;
+      alert("Gesto registrado correctamente");
+      // reset
+      gestureName.value = "";
+      recordedFrames = [];
+      recordingProgress.style.width = "0%";
+      previewBtn.disabled = true;
+      saveBtn.disabled = true;
+    } else {
+      recordingStatus.textContent = `Error: ${j.error || 'Error servidor'}`;
+      alert("Error guardando: " + (j.error || "Error"));
+    }
+  } catch (err) {
+    console.error("save error:", err);
+    recordingStatus.textContent = "Error conexión";
+    alert("Error de conexión al guardar gesto");
+  }
+}
+
+/* ================== Init UI ================== */
+document.addEventListener("DOMContentLoaded", () => {
+  // cargar historial
+  loadChatHistory();
+});
+</script>
+
+<style>
+.camera-container { position: relative; width:100%; background:#000; border-radius:8px; overflow:hidden; }
+.camera-container video { width:100%; height:auto; display:block; }
+</style>
+{% endblock %}

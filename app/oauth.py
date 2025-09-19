@@ -83,4 +83,3 @@ def callback():
 
     login_user(user)
     return redirect(url_for("gestures.dashboard"))
-
