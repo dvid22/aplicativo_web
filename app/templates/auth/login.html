@@ -1,50 +1,521 @@
 {% extends "base.html" %}
-{% block title %}Iniciar sesión | Gestos AI{% endblock %}
+{% block title %}Iniciar sesión | Gestos AI - Comunicación Inclusiva{% endblock %}
+
+{% block head %}
+<meta name="description" content="Inicia sesión en Gestos AI para acceder a la plataforma de comunicación inclusiva con reconocimiento de gestos en tiempo real.">
+<style>
+.auth-container {
+    min-height: 80vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-8) var(--space-4);
+    background: linear-gradient(135deg, var(--color-bg-primary) 0%, color-mix(in srgb, var(--primary-50) 20%, transparent) 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+.auth-container::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -20%;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle, color-mix(in srgb, var(--primary-100) 30%, transparent) 0%, transparent 70%);
+    opacity: 0.6;
+    z-index: 0;
+}
+
+.auth-card {
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border-primary);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-xl);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+    transition: all var(--transition-normal);
+}
+
+.auth-card:hover {
+    box-shadow: var(--shadow-2xl);
+    transform: translateY(-2px);
+}
+
+.auth-header {
+    background: linear-gradient(135deg, var(--primary-600), var(--primary-700));
+    color: white;
+    padding: var(--space-6);
+    text-align: center;
+    position: relative;
+}
+
+.auth-header::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 4px;
+    background: var(--primary-300);
+    border-radius: var(--radius-full);
+}
+
+.auth-icon {
+    font-size: 2.5rem;
+    margin-bottom: var(--space-3);
+    display: block;
+}
+
+.auth-body {
+    padding: var(--space-6);
+}
+
+.form-group {
+    margin-bottom: var(--space-4);
+}
+
+.input-group {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-icon {
+    position: absolute;
+    left: var(--space-4);
+    z-index: 2;
+    color: var(--color-text-tertiary);
+    transition: color var(--transition-fast);
+}
+
+.form-control {
+    width: 100%;
+    padding: var(--space-3) var(--space-4) var(--space-3) calc(var(--space-4) * 2 + 1rem);
+    border: 1.5px solid var(--color-border-primary);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-normal);
+    transition: all var(--transition-fast);
+    line-height: 1.5;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--primary-500);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-500) 20%, transparent);
+    background: var(--color-bg-secondary);
+}
+
+.form-control:focus + .input-icon {
+    color: var(--primary-500);
+}
+
+.form-label {
+    display: block;
+    margin-bottom: var(--space-2);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.btn-auth {
+    width: 100%;
+    padding: var(--space-3) var(--space-4);
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-semibold);
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-auth::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s;
+}
+
+.btn-auth:hover::before {
+    left: 100%;
+}
+
+.btn-primary-auth {
+    background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+    color: white;
+    box-shadow: var(--shadow-md);
+}
+
+.btn-primary-auth:hover {
+    background: linear-gradient(135deg, var(--primary-600), var(--primary-700));
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-lg);
+}
+
+.btn-google {
+    background: white;
+    color: var(--neutral-700);
+    border: 1.5px solid var(--color-border-primary);
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-google:hover {
+    background: var(--neutral-50);
+    border-color: var(--neutral-300);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.divider {
+    display: flex;
+    align-items: center;
+    margin: var(--space-5) 0;
+    color: var(--color-text-tertiary);
+    font-size: var(--font-size-sm);
+}
+
+.divider::before,
+.divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--color-border-primary);
+}
+
+.divider-text {
+    padding: 0 var(--space-3);
+    font-weight: var(--font-weight-medium);
+}
+
+.auth-footer {
+    text-align: center;
+    margin-top: var(--space-5);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--color-border-primary);
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.auth-link {
+    color: var(--primary-600);
+    text-decoration: none;
+    font-weight: var(--font-weight-semibold);
+    transition: color var(--transition-fast);
+}
+
+.auth-link:hover {
+    color: var(--primary-700);
+    text-decoration: underline;
+}
+
+/* Estados de validación */
+.form-control.is-invalid {
+    border-color: var(--danger-500);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger-500) 20%, transparent);
+}
+
+.form-control.is-valid {
+    border-color: var(--success-500);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--success-500) 20%, transparent);
+}
+
+.invalid-feedback {
+    display: block;
+    width: 100%;
+    margin-top: var(--space-2);
+    font-size: var(--font-size-xs);
+    color: var(--danger-600);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .auth-container {
+        padding: var(--space-4);
+        min-height: 70vh;
+    }
+    
+    .auth-card {
+        margin: 0 var(--space-2);
+    }
+    
+    .auth-body {
+        padding: var(--space-4);
+    }
+}
+
+/* Animaciones */
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.auth-card {
+    animation: slideInUp 0.5s ease-out;
+}
+
+/* Mejoras de accesibilidad */
+@media (prefers-reduced-motion: reduce) {
+    .auth-card {
+        animation: none;
+    }
+    
+    .btn-auth::before {
+        display: none;
+    }
+}
+/* Estilos específicos para botón de Google */
+.btn-google {
+    background: white;
+    color: #757575;
+    border: 1.5px solid #dadce0;
+    box-shadow: var(--shadow-sm);
+    transition: all var(--transition-fast);
+    position: relative;
+}
+
+.btn-google:hover {
+    background: #f8f9fa;
+    border-color: #d2e3fc;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-google:active {
+    transform: translateY(0);
+}
+
+.btn-google::before {
+    content: '';
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    background: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAxOCAxOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE2LjUxIDkuMjA0NTVDMTYuNTEgOC41NjYzNiAxNi40NDkgNy45NTQ1NSAxNi4zMTYgNy4zNjkwOUg5LjIyVjEwLjg0NTVIMTMuNDg3QzEzLjM1IDEyLjA3MDkgMTIuNzM5IDEyLjk3NzMgMTEuNzE2IDEzLjU3NzNWMTUuODE4MkgxNC4yNzdDMTUuODEzIDE0LjM0MDkgMTYuNTEgMTIuMDczMiAxNi41MSA5LjIwNDU1WiIgZmlsbD0iIzQyODVGMyIvPgo8cGF0aCBkPSJNOS4yMiAxOC4wMDAxQzExLjczNyAxOC4wMDAxIDEzLjg1IDE3LjE2MzYgMTUuMzc3IDE1LjgxODJMMTEuNzE2IDEzLjU3NzNDMTAuODc3IDE0LjEwOTEgOS43ODIgMTQuNDE4MiA4LjU2OCAxNC40MTgyQzYuMTE1IDE0LjQxODIgNC4wMzYgMTIuNjMxOCAzLjM0IDEwLjM5NTVIMC42NTYyNVYxMi43MjczQzIuMTc3MyAxNS43MDA5IDUuNDE4MiAxOC4wMDAxIDkuMjIgMTguMDAwMVoiIGZpbGw9IiMzNEE4NTMiLz4KPHBhdGggZD0iTTMuMzQgMTAuMzk1NUMzLjA5IDkuNjYzNjQgMi45NTUgOC44ODQ1NSAyLjk1NSA4LjAwMDAxQzIuOTU1IDcuMTE1NDYgMy4wOSA2LjMzNjM2IDMuMzQgNS42MDQ1NVYzLjI3MjczSDAuNjU2MjVDLTAuMjE4MTgyIDUuMDU5MDkgLTAuNzI3MjczIDcuMDc3MjcgLTAuNzI3MjczIDkuMDAwMDFDLTAuNzI3MjczIDEwLjkyMjcgLTAuMjE4MTgyIDEyLjk0MDkgMC42NTYyNSAxNC43MjczTDMuMzQgMTAuMzk1NVoiIGZpbGw9IiNGQkJCMDAiLz4KPHBhdGggZD0iTTkuMjIgMy41ODE4MkMxMC45NTUgMy41ODE4MiAxMi40NjggNC4yNTQ1NSAxMy41OTUgNS40OTU0NUwxNS40NjggMy42MjI3M0MxMy44NSAxLjg2MzY0IDExLjczNyAwLjkwOTA5MSA5LjIyIDAuOTA5MDkxQzUuNDE4MiAwLjkwOTA5MSAyLjE3NzMgMy4yMDgyNyAwLjY1NjI1IDYuMjcyNzNMMy4zNCA4LjYwNDU1QzQuMDM2IDYuMzY4MTggNi4xMTUgNC41ODE4MiA4LjU2OCA0LjU4MTgyQzkuNzgyIDQuNTgxODIgMTAuODc3IDQuODkwOTEgMTEuNzE2IDUuNDIyNzNWNS40MjI3M0wxNS4zNzcgMy4xODE4MkMxMy44NSAxLjgzNjM2IDExLjczNyAwLjkwOTA5MSA5LjIyIDAuOTA5MDkxVjMuNTgxODJaIiBmaWxsPSIjMzRBODUzIi8+Cjwvc3ZnPgo=') no-repeat center center;
+    background-size: contain;
+    margin-right: 10px;
+}
+
+/* Estados de deshabilitado para cuando Google OAuth no esté configurado */
+.btn-google.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+.btn-google.disabled:hover {
+    background: white;
+    border-color: #dadce0;
+    transform: none;
+    box-shadow: var(--shadow-sm);
+}
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center align-items-center" style="min-height: 70vh;">
-  <div class="col-md-6 col-lg-4">
-    <div class="card shadow-lg border-0">
-      <div class="card-header bg-primary text-white text-center py-3">
-        <h4 class="mb-0 fw-bold"><i class="fas fa-sign-in-alt"></i> Iniciar sesión</h4>
-      </div>
-      <div class="card-body p-4">
-        <form method="POST">
-          <!-- Usuario -->
-          <div class="input-group mb-3">
-            <span class="input-group-text bg-light"><i class="fas fa-user"></i></span>
-            <input name="username" class="form-control" placeholder="Usuario" required>
-          </div>
-          <!-- Contraseña -->
-          <div class="input-group mb-4">
-            <span class="input-group-text bg-light"><i class="fas fa-lock"></i></span>
-            <input name="password" type="password" class="form-control" placeholder="Contraseña" required>
-          </div>
-          <!-- Botón de login -->
-          <button class="btn btn-primary w-100 mb-3">
-            <i class="fas fa-sign-in-alt"></i> Entrar
-          </button>
-        </form>
+<div class="auth-container">
+    <div class="col-12 col-sm-10 col-md-8 col-lg-5 col-xl-4">
+        <div class="auth-card">
+            <!-- Header -->
+            <div class="auth-header">
+                <i class="fas fa-sign-in-alt auth-icon"></i>
+                <h1 class="h3 mb-2 fw-bold">Bienvenido de nuevo</h1>
+                <p class="mb-0 opacity-90">Accede a tu cuenta de Gestos AI</p>
+            </div>
+            
+            <!-- Body -->
+            <div class="auth-body">
+                <!-- Mostrar mensajes flash -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show mb-4" role="alert">
+                                <i class="fas fa-{{ 'exclamation-triangle' if category == 'error' else 'check-circle' }} me-2"></i>
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
 
-        <!-- Separador -->
-        <div class="d-flex align-items-center my-3">
-          <hr class="flex-grow-1">
-          <span class="mx-2 text-muted small">o</span>
-          <hr class="flex-grow-1">
+                <form method="POST" novalidate>
+                    <!-- Usuario -->
+                    <div class="form-group">
+                        <label for="username" class="form-label">Usuario</label>
+                        <div class="input-group">
+                            <i class="fas fa-user input-icon"></i>
+                            <input 
+                                type="text" 
+                                id="username"
+                                name="username" 
+                                class="form-control {{ 'is-invalid' if error and 'username' in error }}"
+                                placeholder="Ingresa tu usuario"
+                                required
+                                autocomplete="username"
+                                value="{{ username if username else '' }}"
+                            >
+                        </div>
+                        {% if error and 'username' in error %}
+                            <div class="invalid-feedback d-block">
+                                {{ error.username }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Contraseña -->
+                    <div class="form-group">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label for="password" class="form-label">Contraseña</label>
+                            <a href="{{ url_for('auth.forgot_password') }}" 
+                               class="text-sm text-primary text-decoration-none">
+                                ¿Olvidaste tu contraseña?
+                            </a>
+                        </div>
+                        <div class="input-group">
+                            <i class="fas fa-lock input-icon"></i>
+                            <input 
+                                type="password" 
+                                id="password"
+                                name="password" 
+                                class="form-control {{ 'is-invalid' if error and 'password' in error }}"
+                                placeholder="Ingresa tu contraseña"
+                                required
+                                autocomplete="current-password"
+                            >
+                        </div>
+                        {% if error and 'general' in error %}
+                            <div class="invalid-feedback d-block">
+                                {{ error.general }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Recordarme -->
+                    <div class="form-group form-check mb-4">
+                        <input type="checkbox" class="form-check-input" id="remember" name="remember">
+                        <label class="form-check-label small text-muted" for="remember">
+                            Mantener sesión iniciada
+                        </label>
+                    </div>
+
+                    <!-- Botón de login -->
+                    <button type="submit" class="btn-auth btn-primary-auth mb-3">
+                        <i class="fas fa-sign-in-alt"></i>
+                        <span>Iniciar sesión</span>
+                    </button>
+                </form>
+
+                <!-- Separador -->
+                <div class="divider">
+                    <span class="divider-text">o continúa con</span>
+                </div>
+
+                <!-- Google login -->
+                <a href="{{ url_for('auth.google_login') }}" 
+                   class="btn-auth btn-google mb-4 {{ 'disabled' if not config.get('GOOGLE_CLIENT_ID') }}" 
+                   {% if not config.get('GOOGLE_CLIENT_ID') %}aria-disabled="true"{% endif %}>
+                    <span>Continuar con Google</span>
+                </a>
+
+                <!-- Registro -->
+                <div class="auth-footer">
+                    <p class="mb-2">¿No tienes una cuenta?</p>
+                    <a href="{{ url_for('auth.register') }}" class="auth-link">
+                        Regístrate gratis
+                    </a>
+                </div>
+            </div>
         </div>
-
-        <!-- Google login -->
-        <a href="{{ url_for('oauth.login_google') }}" class="btn btn-danger w-100 mb-3">
-          <i class="fab fa-google"></i> Iniciar con Google
-        </a>
-
-        <!-- Registro -->
-        <p class="text-center small mb-0">
-          ¿No tienes cuenta? 
-          <a href="{{ url_for('auth.register') }}" class="fw-bold text-primary">Regístrate aquí</a>
-        </p>
-      </div>
     </div>
-  </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Mejora de experiencia de usuario en formularios
+    const form = document.querySelector('form');
+    const inputs = form.querySelectorAll('input[required]');
+    
+    // Validación en tiempo real
+    inputs.forEach(input => {
+        input.addEventListener('blur', function() {
+            validateField(this);
+        });
+        
+        input.addEventListener('input', function() {
+            if (this.classList.contains('is-invalid')) {
+                validateField(this);
+            }
+        });
+    });
+    
+    function validateField(field) {
+        if (field.value.trim() === '') {
+            field.classList.add('is-invalid');
+            field.classList.remove('is-valid');
+        } else {
+            field.classList.remove('is-invalid');
+            field.classList.add('is-valid');
+        }
+    }
+    
+    // Prevenir envío doble del formulario
+    form.addEventListener('submit', function(e) {
+        const submitButton = this.querySelector('button[type="submit"]');
+        const originalHTML = submitButton.innerHTML;
+        
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span> Iniciando sesión...</span>';
+        
+        // Re-habilitar después de 5 segundos por si hay error
+        setTimeout(() => {
+            submitButton.disabled = false;
+            submitButton.innerHTML = originalHTML;
+        }, 5000);
+    });
+    
+    // Mejora de accesibilidad para mensajes de error
+    const errorElements = document.querySelectorAll('.invalid-feedback');
+    errorElements.forEach(error => {
+        error.setAttribute('role', 'alert');
+        error.setAttribute('aria-live', 'polite');
+    });
+
+    // Auto-focus en el primer campo
+    const firstInput = form.querySelector('input[required]');
+    if (firstInput) {
+        firstInput.focus();
+    }
+
+    // Manejar botón de Google deshabilitado
+    const googleBtn = document.querySelector('.btn-google.disabled');
+    if (googleBtn) {
+        googleBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+        });
+    }
+});
+</script>
 {% endblock %}
