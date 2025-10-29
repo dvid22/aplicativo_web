@@ -1,11 +1,31 @@
-Flask
-Flask-Login
-Flask-PyMongo
-python-dotenv
-oauthlib
-requests
-mediapipe
-opencv-python
-pillow
-numpy
+# Flask Framework
+Flask==2.3.3
+Werkzeug==2.3.7
 
+# Autenticación
+Flask-Login==0.6.3
+Flask-Mail==0.9.1
+
+# Base de datos
+pymongo==4.5.0
+dnspython==2.4.2
+
+# Computer Vision (versiones compatibles)
+opencv-python==4.8.1.78
+mediapipe==0.10.7  # Versión ligeramente anterior más estable
+numpy==1.24.3
+
+# Machine Learning
+scikit-learn==1.3.0
+scipy==1.10.1
+
+# Audio
+gTTS==2.3.2
+
+# Utilidades
+Pillow==10.0.1
+requests==2.31.0
+python-dotenv==1.0.0
+
+# Producción
+gunicorn==21.2.0
