@@ -1,5 +1,5 @@
-/// static/js/gestures.js
-// VERSIÓN COMPLETA CORREGIDA - COMPLETAMENTE FUNCIONAL
+//// static/js/gestures.js
+// VERSIÓN COMPLETA CORREGIDA - COMPATIBLE CON dashboard.html ORIGINAL
 
 console.log("🚀 Inicializando sistema de gestos profesional...");
 
@@ -16,6 +16,8 @@ let recordingFrames = [];
 let recognitionInterval = null;
 let cooldownActive = false;
 let currentProcessing = false;
+let currentVideoQueue = [];
+let isPlayingQueue = false;
 
 // =============================================================
 // CONFIGURACIÓN
@@ -53,7 +55,6 @@ class ModalManager {
     }
 
     static showAlert(type, title, message, details = '') {
-        // Usar Toast de Bootstrap si está disponible
         if (typeof bootstrap !== 'undefined' && bootstrap.Toast) {
             const toastHtml = `
                 <div class="toast align-items-center text-bg-${type} border-0" role="alert">
@@ -75,12 +76,10 @@ class ModalManager {
             const toast = new bootstrap.Toast(toastElement.querySelector('.toast'));
             toast.show();
             
-            // Limpiar después de cerrar
             toastElement.addEventListener('hidden.bs.toast', () => {
                 toastElement.remove();
             });
         } else {
-            // Fallback a alert simple
             const alertDiv = document.createElement('div');
             alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
             alertDiv.innerHTML = `
@@ -146,7 +145,7 @@ class ModalManager {
 }
 
 // =============================================================
-// GESTURES API - ACTUALIZADO PARA NUEVO BACKEND
+// GESTURES API
 // =============================================================
 class GesturesAPI {
     static async processFrame(frameData) {
@@ -217,6 +216,40 @@ class GesturesAPI {
             return await response.json();
         } catch (error) {
             console.error('Error en getGesturesList:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    static async getGestureDetails(gestureId) {
+        try {
+            const response = await fetch(`/api/gesture_details/${gestureId}`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Error en getGestureDetails:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    static async searchGesturesPhrase(phrase) {
+        try {
+            const response = await fetch('/api/search_gestures_phrase', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phrase: phrase })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Error en searchGesturesPhrase:', error);
             return { success: false, error: error.message };
         }
     }
@@ -303,10 +336,25 @@ class GesturesAPI {
             return { success: false, error: error.message };
         }
     }
+
+    static async searchGestures(query) {
+        try {
+            const response = await fetch(`/api/search_gestures?q=${encodeURIComponent(query)}`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Error en searchGestures:', error);
+            return { success: false, error: error.message };
+        }
+    }
 }
 
 // =============================================================
-// INICIALIZAR CÁMARA - OPTIMIZADO
+// INICIALIZAR CÁMARA
 // =============================================================
 async function initCamera(videoElementId, overlayId) {
     const videoElement = document.getElementById(videoElementId);
@@ -318,7 +366,6 @@ async function initCamera(videoElementId, overlayId) {
     }
 
     try {
-        // Detener stream anterior si existe
         if (videoElement.srcObject) {
             videoElement.srcObject.getTracks().forEach(track => track.stop());
         }
@@ -360,7 +407,7 @@ async function initCamera(videoElementId, overlayId) {
 }
 
 // =============================================================
-// SISTEMA DE CAPTURA DE FRAMES - OPTIMIZADO
+// SISTEMA DE CAPTURA DE FRAMES
 // =============================================================
 function captureFrame(videoElement) {
     if (!videoElement || videoElement.readyState !== 4) {
@@ -383,7 +430,7 @@ function captureFrame(videoElement) {
 }
 
 // =============================================================
-// VISUALIZACIÓN EN TIEMPO REAL - NUEVO
+// VISUALIZACIÓN EN TIEMPO REAL
 // =============================================================
 async function startRealTimePreview() {
     const video = document.getElementById("recVideo");
@@ -401,19 +448,17 @@ async function startRealTimePreview() {
         try {
             const result = await GesturesAPI.processFrame(frame);
             if (result.success && result.annotated_frame) {
-                // Mostrar frame con landmarks
                 const previewElement = document.getElementById("realTimePreview");
                 if (previewElement) {
                     previewElement.src = result.annotated_frame;
                 }
                 
-                // Actualizar información de landmarks
                 updateLandmarksInfo(result.landmarks_detected);
             }
         } catch (error) {
             console.error("Error en preview tiempo real:", error);
         }
-    }, 500); // Actualizar cada 500ms para mejor rendimiento
+    }, 500);
 }
 
 function updateLandmarksInfo(landmarks) {
@@ -441,7 +486,7 @@ function updateLandmarksInfo(landmarks) {
 }
 
 // =============================================================
-// RECONOCIMIENTO EN TIEMPO REAL - ACTUALIZADO
+// RECONOCIMIENTO EN TIEMPO REAL
 // =============================================================
 async function startRecognition() {
     console.log('🎯 Iniciando reconocimiento...');
@@ -457,7 +502,6 @@ async function startRecognition() {
         return;
     }
 
-    // Inicializar cámara si no está activa
     if (!cameraStream) {
         cameraStream = await initCamera("recVideo", "recOverlay");
     }
@@ -479,19 +523,16 @@ async function startRecognition() {
     if (startBtn) startBtn.disabled = true;
     if (stopBtn) stopBtn.disabled = false;
 
-    // Iniciar preview en tiempo real
     startRealTimePreview();
 
     ModalManager.showInfo("Reconocimiento Iniciado", "El sistema está analizando gestos en tiempo real");
 
-    // Sistema de reconocimiento mejorado
     recognitionInterval = setInterval(async () => {
         if (!recActive || cooldownActive || currentProcessing) return;
 
         currentProcessing = true;
         const frames = [];
         
-        // Capturar 5 frames para mejor análisis
         for (let i = 0; i < 5 && recActive; i++) {
             const frame = captureFrame(video);
             if (frame) {
@@ -513,13 +554,17 @@ async function startRecognition() {
                     showRecognitionResult(result.recognized_gesture);
                     startCooldown();
                     
-                    // Reproducir audio si está disponible
                     if (result.audio_data) {
                         playAudio(result.audio_data);
                     }
+                    
+                    if (result.recognized_gesture.video_path) {
+                        setTimeout(() => {
+                            playGestureInConversation(result.recognized_gesture.video_path, result.recognized_gesture.name);
+                        }, 500);
+                    }
                 }
                 
-                // Mostrar frames anotados si existen
                 if (result.annotated_frames && result.annotated_frames.length > 0) {
                     showAnnotatedFrames(result.annotated_frames);
                 }
@@ -549,10 +594,12 @@ function showRecognitionResult(gesture) {
             </div>
             ${gesture.description ? `<p class="text-light">${gesture.description}</p>` : ''}
             <div class="mt-3">
-                <button class="btn btn-sm btn-outline-primary me-2" onclick="playGesture('${gesture.video_path || ''}', '${gesture.name || ''}')">
-                    <i class="fas fa-play me-1"></i>Reproducir
+                ${gesture.video_path ? `
+                <button class="btn btn-sm btn-outline-primary me-2" onclick="playGestureInModal('${gesture.video_path}', '${gesture.name || ''}')">
+                    <i class="fas fa-play me-1"></i>Reproducir Video
                 </button>
-                <button class="btn btn-sm btn-outline-secondary" onclick="learnMoreAboutGesture('${gesture.id}')">
+                ` : ''}
+                <button class="btn btn-sm btn-outline-secondary" onclick="showGestureDetails('${gesture.id}')">
                     <i class="fas fa-info me-1"></i>Más Info
                 </button>
             </div>
@@ -651,7 +698,7 @@ function stopRecognition() {
 }
 
 // =============================================================
-// GRABAR NUEVO GESTO - ACTUALIZADO
+// GRABAR NUEVO GESTO
 // =============================================================
 async function startRecording() {
     console.log('🎥 Iniciando grabación...');
@@ -672,7 +719,6 @@ async function startRecording() {
     recordStartTime = Date.now();
     recording = true;
 
-    // Inicializar cámara de grabación
     if (!recorderStream) {
         recorderStream = await initCamera("recorderPreview", "recorderOverlay");
     }
@@ -687,12 +733,10 @@ async function startRecording() {
     if (stopBtn) stopBtn.disabled = false;
     if (saveBtn) saveBtn.disabled = true;
 
-    // Actualizar estado de grabación
     updateRecordingUI(true);
 
     ModalManager.showInfo("Grabación Iniciada", "Realiza tu gesto frente a la cámara");
 
-    // Sistema de grabación automática
     const recordInterval = setInterval(() => {
         if (!recording) {
             clearInterval(recordInterval);
@@ -706,7 +750,6 @@ async function startRecording() {
             
             updateRecordingProgress();
             
-            // Detener automáticamente después del máximo de frames
             if (frameCount >= CONFIG.MAX_FRAMES) {
                 stopRecording();
                 clearInterval(recordInterval);
@@ -745,7 +788,6 @@ function updateRecordingProgress() {
         recordingTimeElement.textContent = `${minutes}:${seconds}`;
     }
     
-    // Actualizar barra de progreso
     const progressBar = document.getElementById("recordingProgress");
     if (progressBar) {
         const progress = (frameCount / CONFIG.MAX_FRAMES) * 100;
@@ -778,7 +820,7 @@ function stopRecording() {
 }
 
 // =============================================================
-// GUARDAR GESTO - ACTUALIZADO CON MANEJO DE ERRORES MEJORADO
+// GUARDAR GESTO
 // =============================================================
 async function saveGesture(event) {
     if (event) event.preventDefault();
@@ -806,7 +848,7 @@ async function saveGesture(event) {
         return;
     }
 
-    const loadingModal = ModalManager.showLoading("Guardando gesto...");
+    const loadingModal = ModalManager.showLoading("Guardando gesto y generando video...");
 
     try {
         const gestureData = {
@@ -827,18 +869,17 @@ async function saveGesture(event) {
                 `Frames: ${result.frames_registered || recordingFrames.length}, Categoría: ${category}`
             );
             
-            // Resetear formulario y UI
-            resetRecordingForm();
+            if (result.video_path) {
+                ModalManager.showInfo("Video Generado", "Se ha creado un video demostrativo del gesto");
+            }
             
-            // Actualizar lista de gestos
+            resetRecordingForm();
             loadGesturesList();
             
         } else {
-            // Manejo mejorado de errores
             let errorMessage = result.error || "Error desconocido";
             if (errorMessage.includes("_graph is None") || errorMessage.includes("graph")) {
                 errorMessage = "Error temporal del sistema de visión. Por favor, intenta nuevamente en unos segundos.";
-                // Opcional: ofrecer reinicialización
                 setTimeout(() => {
                     ModalManager.showConfirm(
                         "Reinicializar Sistema",
@@ -852,7 +893,7 @@ async function saveGesture(event) {
                                     ModalManager.showError("Error", "No se pudo reinicializar el sistema", reloadResult.error);
                                 }
                             } catch (reloadError) {
-                                ModalManager.showError("Error", "No se pudo reinicializar el sistema", reloadError.message);
+                                ModalManager.showError("Error", "No se pudo reinicializar el sistema", reloadResult.error);
                             }
                         }
                     );
@@ -895,7 +936,7 @@ function resetRecordingForm() {
 }
 
 // =============================================================
-// MODO CONVERSACIÓN - ACTUALIZADO
+// MODO CONVERSACIÓN
 // =============================================================
 async function sendConversationMessage() {
     const input = document.getElementById("convInput");
@@ -906,80 +947,483 @@ async function sendConversationMessage() {
         return;
     }
 
-    // Agregar mensaje del usuario al chat
     addChatMessage("user", message);
     if (input) input.value = "";
 
     const loadingModal = ModalManager.showLoading("Buscando gestos...");
 
     try {
-        // Usar búsqueda en la lista de gestos existente
-        const gesturesResult = await GesturesAPI.getGesturesList();
+        const phraseResult = await GesturesAPI.searchGesturesPhrase(message);
         
         ModalManager.hideLoading();
         
-        if (gesturesResult.success && gesturesResult.gestures) {
-            const matchingGestures = gesturesResult.gestures.filter(gesture => 
-                gesture.name.toLowerCase().includes(message.toLowerCase()) ||
-                (gesture.description && gesture.description.toLowerCase().includes(message.toLowerCase()))
-            );
+        if (phraseResult.success) {
+            const matchingGestures = phraseResult.gestures_found;
             
-            if (matchingGestures.length > 0) {
-                let response = `Encontré ${matchingGestures.length} gesto(s) relacionados:\n\n`;
+            if (matchingGestures && matchingGestures.length > 0) {
+                let response = `Encontré ${matchingGestures.length} gesto(s) para "<strong>${message}</strong>":<br><br>`;
                 
-                matchingGestures.forEach(gesture => {
+                matchingGestures.forEach((gesture, index) => {
                     response += `• <strong>${gesture.name}</strong>`;
                     if (gesture.description) {
                         response += ` - ${gesture.description}`;
                     }
-                    response += ` <button class="btn btn-sm btn-outline-primary ms-2" onclick="playGesture('${gesture.video_path}', '${gesture.name}')">
-                        <i class="fas fa-play"></i> Ver
-                    </button><br>`;
+                    
+                    if (gesture.video_path) {
+                        response += ` <button class="btn btn-sm btn-outline-primary ms-2" onclick="playGestureInModal('${gesture.video_path}', '${gesture.name}')">
+                            <i class="fas fa-play"></i> Ver
+                        </button>`;
+                    } else {
+                        response += ` <span class="badge bg-warning ms-2">Sin video</span>`;
+                    }
+                    response += `<br>`;
                 });
                 
                 addChatMessage("bot", response);
                 
-                // Sintetizar voz para el primer resultado
-                if (matchingGestures.length > 0) {
-                    const ttsResult = await GesturesAPI.textToSpeech(`Encontré el gesto ${matchingGestures[0].name}`);
-                    if (ttsResult.success && ttsResult.audio_data) {
-                        playAudio(ttsResult.audio_data);
-                    }
+                const gesturesWithVideo = matchingGestures.filter(g => g.video_path);
+                if (gesturesWithVideo.length > 0) {
+                    setTimeout(() => {
+                        console.log('🎬 Reproduciendo secuencia automáticamente:', gesturesWithVideo.length, 'videos');
+                        playGestureSequence(gesturesWithVideo, message);
+                    }, 1000);
+                    
+                    setTimeout(async () => {
+                        const ttsResult = await GesturesAPI.textToSpeech(`Encontré ${gesturesWithVideo.length} gestos para ${message}`);
+                        if (ttsResult.success && ttsResult.audio_data) {
+                            playAudio(ttsResult.audio_data);
+                        }
+                    }, 500);
+                } else {
+                    addChatMessage("bot", `<br><small class="text-warning">⚠️ Los gestos encontrados no tienen video demostrativo.</small>`);
                 }
             } else {
                 addChatMessage("bot", `No encontré gestos relacionados con "<strong>${message}</strong>". Intenta con otras palabras.`);
             }
         } else {
-            addChatMessage("bot", `Error buscando gestos: ${gesturesResult.error}`);
+            addChatMessage("bot", `Error buscando gestos: ${phraseResult.error}`);
         }
         
     } catch (error) {
         ModalManager.hideLoading();
         addChatMessage("bot", `Error buscando gestos para "${message}". Intenta nuevamente.`);
+        console.error("Error en conversación:", error);
     }
 }
 
-function addChatMessage(sender, message) {
-    const chatBox = document.getElementById("chatBox");
-    if (!chatBox) return;
+// =============================================================
+// SISTEMA DE REPRODUCCIÓN EN SECUENCIA
+// =============================================================
+async function playGestureSequence(gestures, phrase = '') {
+    if (!gestures || gestures.length === 0) return;
     
-    const messageDiv = document.createElement("div");
-    messageDiv.className = `msg ${sender}`;
+    currentVideoQueue = gestures;
+    isPlayingQueue = true;
     
-    const avatar = sender === "user" ? "👤" : "🤖";
-    const bubbleClass = sender === "user" ? "user" : "bot";
+    const queueStatus = document.getElementById("queueStatus");
+    if (queueStatus) {
+        queueStatus.innerHTML = `
+            <div class="alert alert-info">
+                <i class="fas fa-play-circle me-2"></i>
+                <strong>Reproduciendo secuencia:</strong> ${phrase}
+                <br><small>${gestures.length} video(s) en cola</small>
+                <button class="btn btn-sm btn-outline-danger ms-2" onclick="stopVideoQueue()">
+                    <i class="fas fa-stop"></i> Detener
+                </button>
+            </div>
+        `;
+    }
     
-    messageDiv.innerHTML = `
-        <div class="avatar">${avatar}</div>
-        <div class="bubble ${bubbleClass}">${message}</div>
-    `;
+    ModalManager.showInfo(
+        "Reproduciendo Secuencia", 
+        `Iniciando reproducción de ${gestures.length} gestos`
+    );
     
-    chatBox.appendChild(messageDiv);
-    chatBox.scrollTop = chatBox.scrollHeight;
+    await playNextInQueue();
+}
+
+async function playNextInQueue() {
+    if (!isPlayingQueue || currentVideoQueue.length === 0) {
+        isPlayingQueue = false;
+        const queueStatus = document.getElementById("queueStatus");
+        if (queueStatus) {
+            queueStatus.innerHTML = `
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>Secuencia completada</strong>
+                </div>
+            `;
+        }
+        return;
+    }
+    
+    const nextGesture = currentVideoQueue.shift();
+    const queueStatus = document.getElementById("queueStatus");
+    
+    if (queueStatus) {
+        queueStatus.innerHTML = `
+            <div class="alert alert-warning">
+                <i class="fas fa-play-circle me-2"></i>
+                <strong>Reproduciendo:</strong> ${nextGesture.name}
+                <br><small>${currentVideoQueue.length + 1} video(s) restantes</small>
+                <button class="btn btn-sm btn-outline-danger ms-2" onclick="stopVideoQueue()">
+                    <i class="fas fa-stop"></i> Detener
+                </button>
+            </div>
+        `;
+    }
+    
+    playGestureInConversation(nextGesture.video_path, nextGesture.name);
+    
+    const videoElement = document.querySelector('#player video');
+    if (videoElement) {
+        videoElement.onended = () => {
+            setTimeout(() => {
+                playNextInQueue();
+            }, 500);
+        };
+        
+        // Timeout de seguridad por si el video no se reproduce
+        setTimeout(() => {
+            if (isPlayingQueue) {
+                playNextInQueue();
+            }
+        }, 10000);
+    } else {
+        setTimeout(() => {
+            playNextInQueue();
+        }, 2000);
+    }
+}
+
+function stopVideoQueue() {
+    isPlayingQueue = false;
+    currentVideoQueue = [];
+    
+    const queueStatus = document.getElementById("queueStatus");
+    if (queueStatus) {
+        queueStatus.innerHTML = `
+            <div class="alert alert-secondary">
+                <i class="fas fa-stop-circle me-2"></i>
+                <strong>Secuencia detenida</strong>
+            </div>
+        `;
+    }
+    
+    stopPlayer();
+    ModalManager.showInfo("Secuencia Detenida", "La reproducción en secuencia ha sido detenida");
 }
 
 // =============================================================
-// GESTIÓN DE BIBLIOTECA DE GESTOS - ACTUALIZADO
+// REPRODUCTOR DE GESTOS - CORREGIDO COMPLETAMENTE
+// =============================================================
+function playGestureInConversation(videoPath, gestureName = '') {
+    console.log('🎬 Reproduciendo en conversación:', { videoPath, gestureName });
+    playGesture(videoPath, gestureName, 'conversation');
+}
+
+function playGestureInModal(videoPath, gestureName = '') {
+    console.log('🎬 Reproduciendo en modal:', { videoPath, gestureName });
+    
+    let gestureModal = document.getElementById('gestureViewModal');
+    if (!gestureModal) {
+        gestureModal = document.createElement('div');
+        gestureModal.id = 'gestureViewModal';
+        gestureModal.className = 'modal fade';
+        gestureModal.innerHTML = `
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content bg-dark">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="gestureModalTitle">Reproduciendo: ${gestureName}</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="modalPlayer" class="video-container" style="height: 400px;"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(gestureModal);
+    }
+    
+    const modalTitle = gestureModal.querySelector('#gestureModalTitle');
+    if (modalTitle) {
+        modalTitle.textContent = `Reproduciendo: ${gestureName}`;
+    }
+    
+    const modalPlayer = gestureModal.querySelector('#modalPlayer');
+    if (modalPlayer) {
+        playGestureInElement(videoPath, gestureName, modalPlayer);
+    }
+    
+    const modal = new bootstrap.Modal(gestureModal);
+    modal.show();
+}
+
+function playGesture(videoPath, gestureName = '', context = 'default') {
+    const player = document.getElementById("player");
+    const nowPlaying = document.getElementById("nowPlaying");
+    
+    if (!player) {
+        ModalManager.showError("Error", "Reproductor no disponible");
+        return;
+    }
+    
+    playGestureInElement(videoPath, gestureName, player);
+    
+    if (nowPlaying) {
+        nowPlaying.innerHTML = `
+            <div class="alert alert-success">
+                <i class="fas fa-play-circle me-2"></i>
+                <strong>Reproduciendo:</strong> ${gestureName}
+            </div>
+        `;
+    }
+}
+
+// =============================================================
+// FUNCIÓN PRINCIPAL CORREGIDA - CON RUTAS MEJORADAS
+// =============================================================
+function playGestureInElement(videoPath, gestureName, element) {
+    if (!videoPath) {
+        ModalManager.showWarning("Video no disponible", "Este gesto no tiene video asociado");
+        return;
+    }
+    
+    console.log('📹 Ruta original del video:', videoPath);
+    
+    // CORRECCIÓN MEJORADA: Manejo consistente de rutas
+    let fullVideoPath = videoPath;
+    
+    // Si ya es una URL completa, usarla directamente
+    if (videoPath.startsWith('http') || videoPath.startsWith('//')) {
+        fullVideoPath = videoPath;
+    }
+    // Si empieza con uploads/, agregar /static/ (ruta desde Flask)
+    else if (videoPath.startsWith('uploads/')) {
+        fullVideoPath = '/static/' + videoPath;
+    }
+    // Si ya tiene /static/, dejarla como está
+    else if (videoPath.startsWith('/static/')) {
+        fullVideoPath = videoPath;
+    }
+    // Para cualquier otra ruta relativa, asumir que está en static
+    else if (!videoPath.startsWith('/') && !videoPath.startsWith('http')) {
+        fullVideoPath = '/static/' + videoPath;
+    }
+    // Para rutas absolutas sin static, agregar static
+    else if (videoPath.startsWith('/') && !videoPath.startsWith('/static/')) {
+        fullVideoPath = '/static' + videoPath;
+    }
+    
+    console.log('📹 Ruta corregida del video:', fullVideoPath);
+    
+    // Mostrar loader
+    element.style.display = 'block';
+    element.innerHTML = `
+        <div class="d-flex justify-content-center align-items-center h-100">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando video...</span>
+            </div>
+            <div class="ms-3">Cargando: ${gestureName}</div>
+        </div>
+    `;
+    
+    // Crear elemento video optimizado
+    const videoElement = document.createElement('video');
+    videoElement.controls = true;
+    videoElement.className = 'w-100 h-100';
+    videoElement.style.objectFit = 'contain';
+    videoElement.autoplay = true;
+    videoElement.muted = true;
+    videoElement.playsInline = true;
+    videoElement.preload = 'auto';
+    
+    // Configurar la fuente del video - USAR RUTA CORREGIDA
+    videoElement.src = fullVideoPath;
+    
+    videoElement.onloadeddata = () => {
+        console.log('✅ Video cargado correctamente:', fullVideoPath);
+        element.innerHTML = '';
+        element.appendChild(videoElement);
+        
+        // Intentar reproducción automática
+        const playPromise = videoElement.play();
+        if (playPromise !== undefined) {
+            playPromise.then(() => {
+                console.log('▶️ Reproducción automática exitosa');
+                ModalManager.showSuccess("Video Cargado", `Reproduciendo: ${gestureName}`);
+            }).catch(error => {
+                console.log("❌ Reproducción automática bloqueada:", error);
+                ModalManager.showInfo("Reproducción", "Haz clic en el botón de play para reproducir el video");
+                videoElement.controls = true;
+            });
+        }
+    };
+    
+    videoElement.oncanplaythrough = () => {
+        console.log('🎵 Video completamente cargado y listo para reproducir');
+    };
+    
+    videoElement.onerror = (e) => {
+        console.error('❌ Error cargando video:', e, 'Ruta:', fullVideoPath);
+        
+        let errorMessage = 'Error desconocido';
+        let errorType = 'desconocido';
+        
+        if (videoElement.error) {
+            switch (videoElement.error.code) {
+                case videoElement.error.MEDIA_ERR_ABORTED:
+                    errorMessage = 'Carga cancelada';
+                    errorType = 'aborted';
+                    break;
+                case videoElement.error.MEDIA_ERR_NETWORK:
+                    errorMessage = 'Error de red';
+                    errorType = 'network';
+                    break;
+                case videoElement.error.MEDIA_ERR_DECODE:
+                    errorMessage = 'Error de decodificación - formato no compatible';
+                    errorType = 'decode';
+                    break;
+                case videoElement.error.MEDIA_ERR_SRC_NOT_SUPPORTED:
+                    errorMessage = 'Formato no soportado';
+                    errorType = 'unsupported';
+                    break;
+            }
+        }
+        
+        console.log('🔍 Tipo de error de video:', errorType);
+        
+        element.innerHTML = `
+            <div class="d-flex justify-content-center align-items-center h-100 text-danger">
+                <div class="text-center">
+                    <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                    <h5>Error al cargar el video</h5>
+                    <p class="mb-1">${gestureName}</p>
+                    <small class="text-muted">Error: ${errorMessage}</small>
+                    <br>
+                    <small class="text-muted">Ruta: ${fullVideoPath}</small>
+                    <br>
+                    <div class="mt-3">
+                        <button class="btn btn-sm btn-outline-primary me-2" onclick="playGestureInElement('${videoPath}', '${gestureName}', this.parentElement.parentElement.parentElement)">
+                            <i class="fas fa-redo me-1"></i>Reintentar
+                        </button>
+                        <button class="btn btn-sm btn-outline-warning" onclick="diagnoseVideoIssueFromPath('${videoPath}', '${gestureName}')">
+                            <i class="fas fa-bug me-1"></i>Diagnosticar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    };
+    
+    // Timeout de seguridad
+    const timeout = setTimeout(() => {
+        if (element.querySelector('video') === null && element.innerHTML.includes('spinner-border')) {
+            console.log('⏰ Timeout de carga del video');
+            element.innerHTML = `
+                <div class="d-flex justify-content-center align-items-center h-100">
+                    <div class="text-center">
+                        <i class="fas fa-clock fa-2x mb-2 text-warning"></i>
+                        <p>Tiempo de carga excedido</p>
+                        <div class="mt-3">
+                            <video src="${fullVideoPath}" controls class="w-100 h-100" style="object-fit: contain; max-height: 300px;"></video>
+                        </div>
+                        <div class="mt-2">
+                            <button class="btn btn-sm btn-outline-primary" onclick="playGestureInElement('${videoPath}', '${gestureName}', this.parentElement.parentElement.parentElement)">
+                                Reintentar Carga Automática
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+    }, 8000);
+
+    videoElement.onloadstart = () => {
+        clearTimeout(timeout);
+    };
+}
+
+// =============================================================
+// DIAGNÓSTICO MEJORADO
+// =============================================================
+async function diagnoseVideoIssueFromPath(videoPath, gestureName) {
+    console.log('🔍 Diagnóstico detallado para:', videoPath);
+    
+    let fullVideoPath = videoPath;
+    if (videoPath.startsWith('uploads/')) {
+        fullVideoPath = '/static/' + videoPath;
+    } else if (!videoPath.startsWith('/') && !videoPath.startsWith('http')) {
+        fullVideoPath = '/static/' + videoPath;
+    } else if (videoPath.startsWith('/') && !videoPath.startsWith('/static/')) {
+        fullVideoPath = '/static' + videoPath;
+    }
+    
+    const testUrl = window.location.origin + fullVideoPath;
+    
+    try {
+        ModalManager.showInfo("Diagnóstico", "Verificando disponibilidad del video...");
+        
+        const response = await fetch(testUrl, { method: 'HEAD' });
+        console.log('📡 Estado del archivo:', response.status, response.ok ? 'EXISTE' : 'NO EXISTE');
+        
+        if (response.ok) {
+            const size = response.headers.get('content-length');
+            const type = response.headers.get('content-type');
+            
+            ModalManager.showSuccess(
+                "Video disponible en servidor", 
+                `El archivo existe y es accesible`,
+                `Tamaño: ${size} bytes | Tipo: ${type} | Ruta: ${fullVideoPath}`
+            );
+        } else {
+            ModalManager.showError(
+                "Video no encontrado", 
+                "El archivo de video no existe en el servidor",
+                `URL: ${testUrl} | Estado: ${response.status}`
+            );
+        }
+    } catch (fetchError) {
+        console.error('❌ Error en diagnóstico fetch:', fetchError);
+        ModalManager.showError(
+            "Error de conexión", 
+            "No se pudo verificar el archivo de video",
+            `Error: ${fetchError.message} | URL: ${testUrl}`
+        );
+    }
+}
+
+// =============================================================
+// AUDIO MANAGER
+// =============================================================
+function playAudio(audioData) {
+    try {
+        if (!audioData) {
+            console.warn('No hay datos de audio para reproducir');
+            return;
+        }
+        
+        const audio = new Audio(audioData);
+        audio.volume = 0.8;
+        
+        audio.play().catch(e => {
+            console.log('Error reproduciendo audio:', e);
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance("Gesto reconocido");
+                speechSynthesis.speak(utterance);
+            }
+        });
+    } catch (error) {
+        console.error('Error con audio:', error);
+    }
+}
+
+// =============================================================
+// GESTIÓN DE BIBLIOTECA DE GESTOS
 // =============================================================
 async function loadGesturesList() {
     try {
@@ -1001,16 +1445,22 @@ async function loadGesturesList() {
                     <td>${gesture.frames || 0}</td>
                     <td>
                         <div class="progress" style="height: 6px;">
-                            <div class="progress-bar bg-success" style="width: ${((gesture.valid_frames || gesture.frames || 0) / (gesture.frames || 1)) * 100}%"></div>
+                            <div class="progress-bar bg-success" style="width: ${gesture.avg_quality ? (gesture.avg_quality * 100) : 50}%"></div>
                         </div>
-                        <small>${gesture.valid_frames || gesture.frames || 0}/${gesture.frames || 0} válidos</small>
+                        <small>${gesture.avg_quality ? (gesture.avg_quality * 100).toFixed(1) : '50'}% calidad</small>
                     </td>
                     <td>${gesture.created_at || 'N/A'}</td>
                     <td>
                         <div class="btn-group btn-group-sm">
-                            <button class="btn btn-outline-primary" onclick="playGesture('${gesture.video_path}', '${gesture.name}')" title="Reproducir">
+                            ${gesture.video_path ? `
+                            <button class="btn btn-outline-primary" onclick="playGestureInModal('${gesture.video_path}', '${gesture.name}')" title="Reproducir Video">
                                 <i class="fas fa-play"></i>
                             </button>
+                            ` : `
+                            <button class="btn btn-outline-secondary" disabled title="Sin video">
+                                <i class="fas fa-play"></i>
+                            </button>
+                            `}
                             <button class="btn btn-outline-info" onclick="showGestureDetails('${gesture.id}')" title="Detalles">
                                 <i class="fas fa-info"></i>
                             </button>
@@ -1053,6 +1503,137 @@ async function loadGesturesList() {
     }
 }
 
+async function showGestureDetails(gestureId) {
+    const loadingModal = ModalManager.showLoading('Cargando detalles...');
+    
+    try {
+        const result = await GesturesAPI.getGestureDetails(gestureId);
+        ModalManager.hideLoading();
+        
+        if (result.success) {
+            const gesture = result.gesture;
+            
+            let detailsModal = document.getElementById('gestureDetailsModal');
+            if (!detailsModal) {
+                detailsModal = document.createElement('div');
+                detailsModal.id = 'gestureDetailsModal';
+                detailsModal.className = 'modal fade';
+                detailsModal.innerHTML = `
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content bg-dark">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Detalles del Gesto</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body" id="gestureDetailsContent">
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                                ${gesture.video_path ? `
+                                <button type="button" class="btn btn-primary" onclick="playGestureInModal('${gesture.video_path}', '${gesture.name}')">
+                                    <i class="fas fa-play me-1"></i>Reproducir Video
+                                </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(detailsModal);
+            }
+            
+            const content = document.getElementById('gestureDetailsContent');
+            if (content) {
+                content.innerHTML = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Información General</h6>
+                            <table class="table table-dark table-sm">
+                                <tr>
+                                    <td><strong>Nombre:</strong></td>
+                                    <td>${gesture.name}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Descripción:</strong></td>
+                                    <td>${gesture.description || 'Sin descripción'}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Categoría:</strong></td>
+                                    <td><span class="badge bg-primary">${gesture.category}</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Fecha:</strong></td>
+                                    <td>${gesture.created_at}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Estadísticas</h6>
+                            <table class="table table-dark table-sm">
+                                <tr>
+                                    <td><strong>Frames Totales:</strong></td>
+                                    <td>${gesture.total_frames}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Frames Válidos:</strong></td>
+                                    <td>${gesture.valid_frames}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Calidad Promedio:</strong></td>
+                                    <td>
+                                        <div class="progress" style="height: 8px;">
+                                            <div class="progress-bar bg-success" style="width: ${gesture.avg_quality * 100}%"></div>
+                                        </div>
+                                        <small>${(gesture.avg_quality * 100).toFixed(1)}%</small>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Video:</strong></td>
+                                    <td>
+                                        ${gesture.video_path ? 
+                                            '<span class="badge bg-success">Disponible</span>' : 
+                                            '<span class="badge bg-warning">No disponible</span>'
+                                        }
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h6>Landmarks Detectados</h6>
+                            <div class="d-flex gap-2">
+                                <span class="badge bg-success">Mano Izq: ${gesture.landmarks_count.left_hand || 0}</span>
+                                <span class="badge bg-danger">Mano Der: ${gesture.landmarks_count.right_hand || 0}</span>
+                                <span class="badge bg-primary">Pose: ${gesture.landmarks_count.pose || 0}</span>
+                                <span class="badge bg-warning">Cara: ${gesture.landmarks_count.face || 0}</span>
+                            </div>
+                        </div>
+                    </div>
+                    ${gesture.video_path ? `
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h6>Vista Previa</h6>
+                            <div class="video-container" style="height: 200px;">
+                                <video src="${gesture.video_path}" controls class="w-100 h-100" style="object-fit: contain;"></video>
+                            </div>
+                        </div>
+                    </div>
+                    ` : ''}
+                `;
+            }
+            
+            const modal = new bootstrap.Modal(detailsModal);
+            modal.show();
+            
+        } else {
+            ModalManager.showError("Error", "No se pudieron cargar los detalles", result.error);
+        }
+    } catch (error) {
+        ModalManager.hideLoading();
+        ModalManager.showError("Error", "No se pudieron cargar los detalles", error.message);
+    }
+}
+
 async function confirmDelete(gestureId, gestureName) {
     ModalManager.showConfirm(
         "Confirmar Eliminación",
@@ -1065,7 +1646,7 @@ async function confirmDelete(gestureId, gestureName) {
                 
                 if (result.success) {
                     ModalManager.showSuccess('Gesto Eliminado', `"${gestureName}" ha sido eliminado correctamente`);
-                    loadGesturesList(); // Recargar lista
+                    loadGesturesList();
                 } else {
                     ModalManager.showError('Error', 'No se pudo eliminar el gesto', result.error);
                 }
@@ -1077,78 +1658,26 @@ async function confirmDelete(gestureId, gestureName) {
     );
 }
 
-function showGestureDetails(gestureId) {
-    ModalManager.showInfo("Detalles del Gesto", "Función en desarrollo", "Próximamente disponible");
-}
-
 // =============================================================
-// REPRODUCTOR DE GESTOS - MEJORADO
+// FUNCIONES AUXILIARES
 // =============================================================
-function playGesture(videoPath, gestureName = '') {
-    const player = document.getElementById("player");
-    const nowPlaying = document.getElementById("nowPlaying");
-    const playerStatus = document.getElementById("playerStatus");
+function addChatMessage(sender, message) {
+    const chatBox = document.getElementById("chatBox");
+    if (!chatBox) return;
     
-    if (!player) {
-        ModalManager.showError("Error", "Reproductor no disponible");
-        return;
-    }
+    const messageDiv = document.createElement("div");
+    messageDiv.className = `msg ${sender}`;
     
-    if (!videoPath) {
-        ModalManager.showWarning("Video no disponible", "Este gesto no tiene video asociado");
-        return;
-    }
+    const avatar = sender === "user" ? "👤" : "🤖";
+    const bubbleClass = sender === "user" ? "user" : "bot";
     
-    // Mostrar loader
-    player.style.display = 'block';
-    player.innerHTML = `
-        <div class="d-flex justify-content-center align-items-center h-100">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Cargando...</span>
-            </div>
-        </div>
+    messageDiv.innerHTML = `
+        <div class="avatar">${avatar}</div>
+        <div class="bubble ${bubbleClass}">${message}</div>
     `;
     
-    // Crear elemento video
-    const videoElement = document.createElement('video');
-    videoElement.src = videoPath;
-    videoElement.controls = true;
-    videoElement.className = 'w-100 h-100';
-    videoElement.style.objectFit = 'contain';
-    
-    videoElement.onloadeddata = () => {
-        player.innerHTML = '';
-        player.appendChild(videoElement);
-        videoElement.play().catch(error => {
-            console.error("Error al reproducir:", error);
-            ModalManager.showInfo("Reproducción", "Haz clic en el video para reproducir");
-        });
-    };
-    
-    videoElement.onerror = () => {
-        player.innerHTML = `
-            <div class="d-flex justify-content-center align-items-center h-100 text-danger">
-                <div class="text-center">
-                    <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
-                    <p>Error al cargar el video</p>
-                </div>
-            </div>
-        `;
-    };
-    
-    if (nowPlaying) {
-        nowPlaying.innerHTML = `
-            <div class="alert alert-success">
-                <i class="fas fa-play-circle me-2"></i>
-                <strong>Reproduciendo:</strong> ${gestureName || videoPath.split('/').pop() || 'gesto demostrativo'}
-            </div>
-        `;
-    }
-    
-    if (playerStatus) {
-        playerStatus.className = "badge bg-success";
-        playerStatus.innerHTML = `<i class="fas fa-play me-1"></i>Reproduciendo`;
-    }
+    chatBox.appendChild(messageDiv);
+    chatBox.scrollTop = chatBox.scrollHeight;
 }
 
 function stopPlayer() {
@@ -1157,6 +1686,11 @@ function stopPlayer() {
     const nowPlaying = document.getElementById("nowPlaying");
     
     if (player) {
+        const video = player.querySelector('video');
+        if (video) {
+            video.pause();
+            video.currentTime = 0;
+        }
         player.innerHTML = '';
         player.style.display = 'none';
     }
@@ -1170,30 +1704,9 @@ function stopPlayer() {
         nowPlaying.innerHTML = `
             <div class="alert alert-info">
                 <i class="fas fa-info-circle me-2"></i>
-                <span class="fw-semibold">Selecciona un gesto para reproducir</span>
+                <span class="fw-semibold">Busca un gesto para reproducirlo</span>
             </div>
         `;
-    }
-}
-
-// =============================================================
-// AUDIO MANAGER - MEJORADO
-// =============================================================
-function playAudio(audioData) {
-    try {
-        const audio = new Audio(audioData);
-        audio.volume = 0.8;
-        
-        audio.play().catch(e => {
-            console.log('Error reproduciendo audio:', e);
-            // Fallback: usar síntesis de voz del navegador
-            if ('speechSynthesis' in window) {
-                const utterance = new SpeechSynthesisUtterance("Gesto reconocido");
-                speechSynthesis.speak(utterance);
-            }
-        });
-    } catch (error) {
-        console.error('Error con audio:', error);
     }
 }
 
@@ -1216,15 +1729,40 @@ async function checkSystemStatus() {
     }
 }
 
+async function loadStats() {
+    try {
+        const result = await GesturesAPI.getGestureStats();
+        if (result.success) {
+            updateStatsDisplay(result.stats);
+        }
+    } catch (error) {
+        console.error("Error cargando estadísticas:", error);
+    }
+}
+
+function updateStatsDisplay(stats) {
+    if (!stats) return;
+    
+    const totalGestures = document.getElementById("totalGestures");
+    const totalFrames = document.getElementById("totalFrames");
+    const accuracyRate = document.getElementById("accuracyRate");
+    const gesturesWithVideo = document.getElementById("gesturesWithVideo");
+    
+    if (totalGestures) totalGestures.textContent = stats.total_gestures || 0;
+    if (totalFrames) totalFrames.textContent = stats.total_frames || 0;
+    if (accuracyRate) accuracyRate.textContent = stats.accuracy_rate || "95%";
+    if (gesturesWithVideo) gesturesWithVideo.textContent = stats.gestures_with_video || 0;
+}
+
 // =============================================================
-// INICIALIZACIÓN - COMPLETA
+// INICIALIZACIÓN - COMPLETA Y CORREGIDA
 // =============================================================
 document.addEventListener("DOMContentLoaded", function() {
     console.log("🎯 gestures.js - Configurando event listeners...");
     
-    // Event listeners mejorados
+    // Event listeners para botones específicos de tu dashboard.html
     document.addEventListener('click', function(e) {
-        // Reconocimiento
+        // Botones de Reconocimiento
         if (e.target.id === 'startRecBtn' || e.target.closest('#startRecBtn')) {
             e.preventDefault();
             startRecognition();
@@ -1234,7 +1772,7 @@ document.addEventListener("DOMContentLoaded", function() {
             stopRecognition();
         }
         
-        // Grabación
+        // Botones de Grabación
         if (e.target.id === 'startRecordBtn' || e.target.closest('#startRecordBtn')) {
             e.preventDefault();
             startRecording();
@@ -1244,25 +1782,26 @@ document.addEventListener("DOMContentLoaded", function() {
             stopRecording();
         }
         
-        // Conversación
+        // Botones de Conversación
         if (e.target.id === 'convSendBtn' || e.target.closest('#convSendBtn')) {
             e.preventDefault();
             sendConversationMessage();
         }
         
-        // Player
+        // Botones de Cola de Video
         if (e.target.id === 'stopQueueBtn' || e.target.closest('#stopQueueBtn')) {
             e.preventDefault();
             stopPlayer();
+            stopVideoQueue();
         }
         
-        // Biblioteca
+        // Botones de Lista de Gestos
         if (e.target.id === 'refreshList' || e.target.closest('#refreshList')) {
             e.preventDefault();
             loadGesturesList();
         }
         
-        // Formulario
+        // Botones de Formulario
         if (e.target.id === 'resetFormBtn' || e.target.closest('#resetFormBtn')) {
             e.preventDefault();
             ModalManager.showConfirm(
@@ -1276,13 +1815,13 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     });
     
-    // Form submit
+    // Formulario de gesto
     const gestureForm = document.getElementById("gestureForm");
     if (gestureForm) {
         gestureForm.addEventListener("submit", saveGesture);
     }
     
-    // Enter key en conversación
+    // Input de conversación
     const convInput = document.getElementById("convInput");
     if (convInput) {
         convInput.addEventListener("keypress", function(e) {
@@ -1293,7 +1832,7 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    // Cargar lista inicial de gestos
+    // Inicializar lista de gestos
     loadGesturesList();
     
     // Inicializar cámaras después de un delay
@@ -1316,44 +1855,23 @@ document.addEventListener("DOMContentLoaded", function() {
     console.log("✅ Sistema de gestos profesional inicializado correctamente");
 });
 
-// Función para cargar estadísticas
-async function loadStats() {
-    try {
-        const result = await GesturesAPI.getGestureStats();
-        if (result.success) {
-            updateStatsDisplay(result.stats);
-        }
-    } catch (error) {
-        console.error("Error cargando estadísticas:", error);
-    }
-}
-
-function updateStatsDisplay(stats) {
-    if (!stats) return;
-    
-    // Actualizar elementos de estadísticas en la UI
-    const totalGestures = document.getElementById("totalGestures");
-    const totalFrames = document.getElementById("totalFrames");
-    const accuracyRate = document.getElementById("accuracyRate");
-    
-    if (totalGestures) totalGestures.textContent = stats.total_gestures || 0;
-    if (totalFrames) totalFrames.textContent = stats.total_frames || 0;
-    if (accuracyRate) accuracyRate.textContent = stats.accuracy_rate || "95%";
-}
-
 // Funciones globales para HTML
 window.playGesture = playGesture;
+window.playGestureInModal = playGestureInModal;
+window.showGestureDetails = showGestureDetails;
 window.confirmDelete = confirmDelete;
 window.stopPlayer = stopPlayer;
+window.stopVideoQueue = stopVideoQueue;
 window.startRecognition = startRecognition;
 window.stopRecognition = stopRecognition;
 window.startRecording = startRecording;
 window.stopRecording = stopRecording;
 window.sendConversationMessage = sendConversationMessage;
 window.loadGesturesList = loadGesturesList;
-window.showGestureDetails = showGestureDetails;
 window.learnMoreAboutGesture = showGestureDetails;
 window.checkSystemStatus = checkSystemStatus;
+window.diagnoseVideoIssue = showGestureDetails;
+window.diagnoseVideoIssueFromPath = diagnoseVideoIssueFromPath;
 window.GesturesAPI = GesturesAPI;
 
 console.log("🎯 gestures.js - Sistema completamente cargado y listo");

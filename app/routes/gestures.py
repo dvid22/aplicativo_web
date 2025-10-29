@@ -1,4 +1,4 @@
-# gestures.py - VERSIÓN COMPLETA CORREGIDA SIN ERROR DE CONTEXTO
+# gestures.py - VERSIÓN COMPLETA CORREGIDA - FORMATO DE VIDEO WEB COMPATIBLE
 import os
 import io
 import cv2
@@ -7,13 +7,14 @@ import numpy as np
 import mediapipe as mp
 import json
 from datetime import datetime
-from flask import Blueprint, request, jsonify, current_app, render_template
+from flask import Blueprint, request, jsonify, current_app, render_template, url_for, send_from_directory
 from flask_login import login_required, current_user
 from bson import ObjectId
 from gtts import gTTS
 from collections import deque
 import threading
 import logging
+import re
 
 # Configuración optimizada
 VIDEO_WIDTH = 640
@@ -79,6 +80,65 @@ def ensure_upload_dirs():
     uploads_dir = os.path.join(current_app.static_folder, "uploads", "gestures")
     os.makedirs(uploads_dir, exist_ok=True)
     return uploads_dir
+
+def generate_gesture_video(frames, gesture_name):
+    """Genera un video MP4 compatible con navegadores - CORREGIDO CON CODEC WEBM"""
+    try:
+        uploads_dir = ensure_upload_dirs()
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        safe_name = "".join(c for c in gesture_name if c.isalnum() or c in (' ', '-', '_')).rstrip()
+        safe_name = safe_name.replace(' ', '_')[:50]
+        
+        # USAR FORMATO WEBM QUE ES MÁS COMPATIBLE CON NAVEGADORES
+        filename = f"gesture_{safe_name}_{timestamp}.webm"
+        video_path = os.path.join(uploads_dir, filename)
+        
+        if not frames:
+            return None
+            
+        height, width = frames[0].shape[:2]
+        
+        # CODEC CORREGIDO: Usar VP8/VP9 que son compatibles con navegadores modernos
+        fourcc = cv2.VideoWriter_fourcc(*'VP80')  # VP8 codec para WebM
+        out = cv2.VideoWriter(video_path, fourcc, FPS_SAVE, (width, height))
+        
+        if not out.isOpened():
+            # Fallback a VP90 si VP80 no está disponible
+            current_app.logger.warning("⚠️ VP80 no disponible, usando VP90 como fallback")
+            fourcc = cv2.VideoWriter_fourcc(*'VP90')
+            out = cv2.VideoWriter(video_path, fourcc, FPS_SAVE, (width, height))
+            
+            if not out.isOpened():
+                # Último fallback: usar MP4V pero con extensión .mp4
+                current_app.logger.warning("⚠️ VP90 no disponible, usando MP4V como último recurso")
+                filename = f"gesture_{safe_name}_{timestamp}.mp4"
+                video_path = os.path.join(uploads_dir, filename)
+                fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+                out = cv2.VideoWriter(video_path, fourcc, FPS_SAVE, (width, height))
+                
+                if not out.isOpened():
+                    current_app.logger.error("❌ No se pudo crear el video writer con ningún codec")
+                    return None
+        
+        # Escribir frames
+        for frame in frames:
+            out.write(frame)
+        
+        out.release()
+        
+        # Verificar que el video se creó correctamente
+        if os.path.exists(video_path) and os.path.getsize(video_path) > 0:
+            # RUTA CORREGIDA: Usar ruta relativa desde static
+            relative_path = f"uploads/gestures/{filename}"
+            current_app.logger.info(f"✅ Video generado correctamente: {relative_path} ({os.path.getsize(video_path)} bytes)")
+            return relative_path
+        else:
+            current_app.logger.error("❌ El archivo de video no se creó correctamente")
+            return None
+        
+    except Exception as e:
+        current_app.logger.error(f"❌ Error generando video: {e}")
+        return None
 
 # ---------------------------
 # VISUALIZADOR
@@ -173,7 +233,7 @@ class EnhancedVisualizer:
 _visualizer = EnhancedVisualizer()
 
 # ---------------------------
-# EXTRACTOR OPTIMIZADO - CORREGIDO SIN CONTEXTO
+# EXTRACTOR OPTIMIZADO
 # ---------------------------
 class OptimizedGestureExtractor:
     def __init__(self, app=None):
@@ -421,7 +481,21 @@ def text_to_speech(text, lang='es'):
         return None
 
 # ---------------------------
-# ENDPOINTS API - CORREGIDOS
+# ENDPOINT PARA SERVIR VIDEOS - NUEVO
+# ---------------------------
+@gestures_bp.route('/uploads/gestures/<filename>')
+@login_required
+def serve_gesture_video(filename):
+    """Sirve archivos de video de gestos"""
+    try:
+        uploads_dir = os.path.join(current_app.static_folder, 'uploads', 'gestures')
+        return send_from_directory(uploads_dir, filename)
+    except Exception as e:
+        current_app.logger.error(f"Error sirviendo video {filename}: {e}")
+        return "Video not found", 404
+
+# ---------------------------
+# ENDPOINTS API - MEJORADOS CON FRASES COMPUESTAS
 # ---------------------------
 
 @gestures_bp.route("/api/process_frame", methods=["POST"])
@@ -475,7 +549,7 @@ def process_frame():
 @gestures_bp.route("/api/register_gesture", methods=["POST"])
 @login_required
 def register_gesture():
-    """Registro de gestos - CORREGIDO"""
+    """Registro de gestos - MEJORADO CON GENERACIÓN DE VIDEO WEBM"""
     try:
         data = request.get_json(force=True)
         name = (data.get('name') or "").strip()
@@ -489,9 +563,10 @@ def register_gesture():
         if len(frames) < MIN_VALID_FRAMES_TO_REGISTER:
             return jsonify({"success": False, "error": f"Mínimo {MIN_VALID_FRAMES_TO_REGISTER} frames requeridos"}), 400
         
-        # Procesar secuencia
+        # Procesar secuencia y generar video
         landmarks_sequence = []
         valid_frames = 0
+        video_frames = []
         
         for frame_data in frames[:MAX_SAVE_FRAMES]:
             img = decode_datauri_to_bgr(frame_data)
@@ -510,9 +585,21 @@ def register_gesture():
                     'quality': result['quality_score']
                 })
                 valid_frames += 1
+                
+                # Guardar frame anotado para el video
+                if result['results']:
+                    annotated_img = _visualizer.draw_landmarks(img, result['results'])
+                    video_frames.append(annotated_img)
         
         if valid_frames < MIN_VALID_FRAMES_TO_REGISTER:
             return jsonify({"success": False, "error": "Frames válidos insuficientes"}), 400
+        
+        # Generar y guardar video (ahora en formato WebM compatible)
+        video_path = None
+        if video_frames:
+            video_path = generate_gesture_video(video_frames, name)
+            if not video_path:
+                current_app.logger.warning(f"⚠️ No se pudo generar video para el gesto '{name}'")
         
         # Guardar en MongoDB
         try:
@@ -526,6 +613,7 @@ def register_gesture():
                 "features_sequence": [frame['features'] for frame in landmarks_sequence],
                 "total_frames": len(landmarks_sequence),
                 "valid_frames": valid_frames,
+                "video_path": video_path,
                 "created_by": str(current_user.id),
                 "created_at": datetime.utcnow(),
                 "avg_quality": float(np.mean([frame['quality'] for frame in landmarks_sequence]))
@@ -538,6 +626,7 @@ def register_gesture():
                 "gesture_id": str(gesture_doc["_id"]),
                 "name": name,
                 "frames_registered": valid_frames,
+                "video_path": video_path,
                 "message": "Gesto registrado exitosamente"
             })
             
@@ -620,6 +709,7 @@ def recognize_gesture():
                             "id": str(gesture["_id"]),
                             "name": gesture.get("name", ""),
                             "description": gesture.get("description", ""),
+                            "video_path": gesture.get("video_path", ""),
                             "similarity": float(avg_similarity),
                             "confidence": max(0, 1 - (avg_similarity / _recognizer.similarity_threshold))
                         }
@@ -651,7 +741,8 @@ def get_gestures_list():
         mongo = current_app.mongo
         user_gestures = list(mongo.db.gestures.find(
             {"created_by": str(current_user.id)},
-            {"name": 1, "description": 1, "category": 1, "created_at": 1, "total_frames": 1, "valid_frames": 1}
+            {"name": 1, "description": 1, "category": 1, "created_at": 1, 
+             "total_frames": 1, "valid_frames": 1, "video_path": 1, "avg_quality": 1}
         ).sort("created_at", -1))
         
         gestures_data = []
@@ -663,6 +754,8 @@ def get_gestures_list():
                 "category": gesture.get("category", "general"),
                 "frames": gesture.get("total_frames", 0),
                 "valid_frames": gesture.get("valid_frames", 0),
+                "video_path": gesture.get("video_path", ""),
+                "avg_quality": gesture.get("avg_quality", 0),
                 "created_at": gesture.get("created_at", datetime.utcnow()).strftime("%Y-%m-%d %H:%M")
             })
         
@@ -671,6 +764,108 @@ def get_gestures_list():
     except Exception as e:
         current_app.logger.error(f"❌ Error en get_gestures_list: {str(e)}")
         return jsonify({"success": False, "error": "Error obteniendo gestos"}), 500
+
+@gestures_bp.route("/api/gesture_details/<gesture_id>", methods=["GET"])
+@login_required
+def get_gesture_details(gesture_id):
+    """Obtiene detalles completos de un gesto específico"""
+    try:
+        mongo = current_app.mongo
+        gesture = mongo.db.gestures.find_one({
+            "_id": ObjectId(gesture_id),
+            "created_by": str(current_user.id)
+        })
+        
+        if not gesture:
+            return jsonify({"success": False, "error": "Gesto no encontrado"}), 404
+        
+        gesture_data = {
+            "id": str(gesture["_id"]),
+            "name": gesture.get("name", ""),
+            "description": gesture.get("description", ""),
+            "category": gesture.get("category", "general"),
+            "total_frames": gesture.get("total_frames", 0),
+            "valid_frames": gesture.get("valid_frames", 0),
+            "video_path": gesture.get("video_path", ""),
+            "avg_quality": gesture.get("avg_quality", 0),
+            "created_at": gesture.get("created_at", datetime.utcnow()).strftime("%Y-%m-%d %H:%M"),
+            "landmarks_count": {
+                "left_hand": len(gesture.get('landmarks_sequence', [{}])[0].get('landmarks', {}).get('left_hand', [])) if gesture.get('landmarks_sequence') else 0,
+                "right_hand": len(gesture.get('landmarks_sequence', [{}])[0].get('landmarks', {}).get('right_hand', [])) if gesture.get('landmarks_sequence') else 0,
+                "pose": len(gesture.get('landmarks_sequence', [{}])[0].get('landmarks', {}).get('pose', [])) if gesture.get('landmarks_sequence') else 0,
+                "face": len(gesture.get('landmarks_sequence', [{}])[0].get('landmarks', {}).get('face', [])) if gesture.get('landmarks_sequence') else 0
+            }
+        }
+        
+        return jsonify({"success": True, "gesture": gesture_data})
+        
+    except Exception as e:
+        current_app.logger.error(f"❌ Error en get_gesture_details: {str(e)}")
+        return jsonify({"success": False, "error": "Error obteniendo detalles del gesto"}), 500
+
+@gestures_bp.route("/api/search_gestures_phrase", methods=["POST"])
+@login_required
+def search_gestures_phrase():
+    """Busca gestos por frase compuesta"""
+    try:
+        data = request.get_json(force=True)
+        phrase = data.get('phrase', '').strip().lower()
+        
+        if not phrase:
+            return jsonify({"success": False, "error": "Frase requerida"}), 400
+        
+        # Dividir la frase en palabras
+        words = re.findall(r'\b\w+\b', phrase)
+        
+        if not words:
+            return jsonify({"success": False, "error": "No se encontraron palabras en la frase"}), 400
+        
+        mongo = current_app.mongo
+        
+        # Buscar gestos que coincidan con cada palabra
+        matching_gestures = []
+        for word in words:
+            gestures = list(mongo.db.gestures.find({
+                "created_by": str(current_user.id),
+                "$or": [
+                    {"name": {"$regex": word, "$options": "i"}},
+                    {"description": {"$regex": word, "$options": "i"}}
+                ]
+            }))
+            
+            for gesture in gestures:
+                if gesture not in matching_gestures:
+                    matching_gestures.append(gesture)
+        
+        # Ordenar por relevancia (coincidencia exacta primero)
+        matching_gestures.sort(key=lambda x: (
+            x.get('name', '').lower() in phrase,
+            len([w for w in words if w in x.get('name', '').lower()]),
+            x.get('avg_quality', 0)
+        ), reverse=True)
+        
+        results = []
+        for gesture in matching_gestures:
+            results.append({
+                "id": str(gesture["_id"]),
+                "name": gesture.get("name", ""),
+                "description": gesture.get("description", ""),
+                "category": gesture.get("category", "general"),
+                "video_path": gesture.get("video_path", ""),
+                "avg_quality": gesture.get("avg_quality", 0)
+            })
+        
+        return jsonify({
+            "success": True,
+            "phrase": phrase,
+            "words_found": words,
+            "gestures_found": results,
+            "total_matches": len(results)
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"❌ Error en search_gestures_phrase: {str(e)}")
+        return jsonify({"success": False, "error": "Error buscando gestos"}), 500
 
 @gestures_bp.route("/api/delete_gesture/<gesture_id>", methods=["DELETE"])
 @login_required
@@ -684,7 +879,7 @@ def delete_gesture(gesture_id):
         })
         
         if result.deleted_count > 0:
-            return jsonify({"success": True, "message": "Gesto eliminado correctamente"})
+            return jsonify({"success": True, "message": "Gesto eliminado exitosamente"})
         else:
             return jsonify({"success": False, "error": "Gesto no encontrado"}), 404
             
@@ -692,228 +887,18 @@ def delete_gesture(gesture_id):
         current_app.logger.error(f"❌ Error en delete_gesture: {str(e)}")
         return jsonify({"success": False, "error": "Error eliminando gesto"}), 500
 
-@gestures_bp.route("/api/gesture_stats", methods=["GET"])
-@login_required
-def get_gesture_stats():
-    """Estadísticas mejoradas para el dashboard"""
-    try:
-        mongo = current_app.mongo
-        
-        # Conteo total de gestos
-        total_gestures = mongo.db.gestures.count_documents({"created_by": str(current_user.id)})
-        
-        # Frames totales
-        pipeline = [
-            {"$match": {"created_by": str(current_user.id)}},
-            {"$group": {"_id": None, "total_frames": {"$sum": "$total_frames"}}}
-        ]
-        frames_result = list(mongo.db.gestures.aggregate(pipeline))
-        total_frames = frames_result[0]["total_frames"] if frames_result else 0
-        
-        # Distribución por categoría
-        category_pipeline = [
-            {"$match": {"created_by": str(current_user.id)}},
-            {"$group": {"_id": "$category", "count": {"$sum": 1}}}
-        ]
-        category_results = list(mongo.db.gestures.aggregate(category_pipeline))
-        category_dist = {item["_id"]: item["count"] for item in category_results}
-        
-        # Gestos de hoy
-        today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-        today_gestures = mongo.db.gestures.count_documents({
-            "created_by": str(current_user.id),
-            "created_at": {"$gte": today}
-        })
-        
-        # Estadísticas adicionales para el dashboard
-        stats = {
-            "total_gestures": total_gestures,
-            "total_frames": total_frames,
-            "accuracy_rate": min(95 + (total_gestures * 0.5), 99),  # Mejora con más gestos
-            "category_distribution": category_dist,
-            "today_gestures": today_gestures,
-            "successful_recognitions": total_gestures * 0.8,  # Placeholder
-            "avg_processing_time": max(50, 200 - (total_gestures * 2))  # Mejora con más datos
-        }
-        
-        return jsonify({"success": True, "stats": stats})
-        
-    except Exception as e:
-        current_app.logger.error(f"❌ Error en get_gesture_stats: {str(e)}")
-        return jsonify({"success": False, "error": str(e)}), 500
-
-@gestures_bp.route("/api/text_to_speech", methods=["POST"])
-@login_required
-def text_to_speech_endpoint():
-    """Síntesis de texto a voz"""
-    try:
-        data = request.get_json(force=True)
-        text = data.get('text', '')
-        
-        if not text:
-            return jsonify({"success": False, "error": "Texto requerido"}), 400
-        
-        audio_data = text_to_speech(text)
-        
-        if audio_data:
-            return jsonify({"success": True, "audio_data": audio_data})
-        else:
-            return jsonify({"success": False, "error": "Error generando audio"}), 500
-            
-    except Exception as e:
-        current_app.logger.error(f"❌ Error en text_to_speech: {str(e)}")
-        return jsonify({"success": False, "error": "Error en síntesis de voz"}), 500
-
-@gestures_bp.route("/api/search_gestures", methods=["GET"])
-@login_required
-def search_gestures():
-    """Búsqueda de gestos por nombre o descripción"""
-    try:
-        query = request.args.get('q', '').strip()
-        
-        if not query:
-            return jsonify({"success": False, "error": "Query requerida"}), 400
-        
-        mongo = current_app.mongo
-        
-        # Buscar en nombre y descripción
-        gestures = list(mongo.db.gestures.find({
-            "created_by": str(current_user.id),
-            "$or": [
-                {"name": {"$regex": query, "$options": "i"}},
-                {"description": {"$regex": query, "$options": "i"}}
-            ]
-        }).limit(10))
-        
-        results = []
-        for gesture in gestures:
-            results.append({
-                "id": str(gesture["_id"]),
-                "name": gesture.get("name", ""),
-                "description": gesture.get("description", ""),
-                "category": gesture.get("category", "general")
-            })
-        
-        return jsonify({"success": True, "results": results})
-        
-    except Exception as e:
-        current_app.logger.error(f"❌ Error en search_gestures: {str(e)}")
-        return jsonify({"success": False, "error": "Error en búsqueda"}), 500
-
-@gestures_bp.route("/api/system_status", methods=["GET"])
-@login_required
-def system_status():
-    """Endpoint para verificar el estado del sistema"""
-    try:
-        # Verificar estado del extractor
-        extractor_status = "OK"
-        if _extractor._is_closed or _extractor.holistic is None:
-            extractor_status = "NEEDS_REINIT"
-        
-        # Verificar conexión a base de datos
-        mongo = current_app.mongo
-        db_status = "OK"
-        try:
-            mongo.db.command('ping')
-        except Exception:
-            db_status = "ERROR"
-        
-        # Estadísticas del sistema
-        status_info = {
-            "extractor_status": extractor_status,
-            "database_status": db_status,
-            "total_gestures": mongo.db.gestures.count_documents({"created_by": str(current_user.id)}),
-            "system_time": datetime.utcnow().isoformat(),
-            "mediapipe_version": mp.__version__
-        }
-        
-        return jsonify({
-            "success": True,
-            "system_status": "operational",
-            "details": status_info
-        })
-        
-    except Exception as e:
-        current_app.logger.error(f"❌ Error en system_status: {str(e)}")
-        return jsonify({"success": False, "error": "Error obteniendo estado del sistema"}), 500
-
-@gestures_bp.route("/api/reinitialize_extractor", methods=["POST"])
-@login_required
-def reinitialize_extractor():
-    """Reinicializa el extractor de MediaPipe"""
-    try:
-        global _extractor
-        
-        # Cerrar el extractor actual de manera segura
-        if '_extractor' in globals() and _extractor:
-            _extractor.close()
-        
-        # Crear nuevo extractor
-        _extractor = OptimizedGestureExtractor(app=current_app._get_current_object())
-        
-        # Probar el nuevo extractor
-        test_image = np.zeros((100, 100, 3), dtype=np.uint8)
-        test_result = _extractor.process_frame(test_image)
-        
-        if test_result['results'] is not None:
-            return jsonify({
-                "success": True,
-                "message": "Extractor reinicializado correctamente",
-                "test_result": "OK"
-            })
-        else:
-            return jsonify({
-                "success": False,
-                "error": "Extractor reinicializado pero falló la prueba"
-            }), 500
-            
-    except Exception as e:
-        current_app.logger.error(f"❌ Error en reinitialize_extractor: {str(e)}")
-        return jsonify({"success": False, "error": "Error reinicializando extractor"}), 500
-
 # ---------------------------
-# INICIALIZACIÓN Y LIMPIEZA MEJORADAS
+# INICIALIZACIÓN
 # ---------------------------
-
 def init_extractor(app):
-    """Inicializa el extractor con el contexto de la aplicación"""
+    """Inicializa el extractor global"""
     global _extractor
-    _extractor = OptimizedGestureExtractor(app=app)
-    app.logger.info("✅ Gestures extractor initialized successfully")
+    _extractor = OptimizedGestureExtractor(app)
+    app.logger.info("✅ Gesture extractor initialized")
 
-# Limpieza mejorada
-@gestures_bp.teardown_app_request
-def close_extractor_on_teardown(error=None):
-    """Cierra el extractor al finalizar de manera segura"""
-    if '_extractor' in globals() and _extractor:
+def close_extractor():
+    """Cierra el extractor global"""
+    global _extractor
+    if _extractor:
         _extractor.close()
-
-# ---------------------------
-# MANEJADOR DE ERRORES GLOBAL
-# ---------------------------
-
-@gestures_bp.errorhandler(500)
-def internal_server_error(error):
-    """Maneja errores internos del servidor"""
-    current_app.logger.error(f"❌ Error interno del servidor: {error}")
-    return jsonify({
-        "success": False,
-        "error": "Error interno del servidor",
-        "message": "Por favor, intenta nuevamente o contacta al administrador"
-    }), 500
-
-@gestures_bp.errorhandler(404)
-def not_found_error(error):
-    """Maneja errores 404"""
-    return jsonify({
-        "success": False,
-        "error": "Endpoint no encontrado"
-    }), 404
-
-@gestures_bp.errorhandler(400)
-def bad_request_error(error):
-    """Maneja errores 400"""
-    return jsonify({
-        "success": False,
-        "error": "Solicitud incorrecta"
-    }), 400
+        _extractor = None

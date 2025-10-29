@@ -1,0 +1,32 @@
+/* ========== ESTILOS ESPECÍFICOS PARA REGISTER ========== */
+.register-container {
+    background: linear-gradient(135deg, var(--color-bg-primary) 0%, rgba(16, 185, 129, 0.1) 100%);
+}
+
+.register-container::before {
+    background: radial-gradient(circle, rgba(167, 243, 208, 0.3) 0%, transparent 70%);
+}
+
+.register-header {
+    background: linear-gradient(135deg, var(--success-600), var(--success-700));
+}
+
+.register-header::after {
+    background: var(--success-300);
+}
+
+.register-header .auth-link {
+    color: var(--success-600);
+}
+
+.register-header .auth-link:hover {
+    color: var(--success-700);
+}
+
+.form-control:focus {
+    border-color: var(--success-500);
+}
+
+.form-control:focus + .input-icon {
+    color: var(--success-500);
+}

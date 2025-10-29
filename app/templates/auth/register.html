@@ -4,13 +4,115 @@
 {% block head %}
 <meta name="description" content="Únete a Gestos AI y descubre una nueva forma de comunicación inclusiva con reconocimiento de gestos en tiempo real.">
 <style>
+:root {
+    /* Colores primarios */
+    --primary-50: #f0f9ff;
+    --primary-100: #e0f2fe;
+    --primary-200: #bae6fd;
+    --primary-300: #7dd3fc;
+    --primary-400: #38bdf8;
+    --primary-500: #0ea5e9;
+    --primary-600: #0284c7;
+    --primary-700: #0369a1;
+    --primary-800: #075985;
+    --primary-900: #0c4a6e;
+    
+    /* Colores de éxito */
+    --success-50: #ecfdf5;
+    --success-100: #d1fae5;
+    --success-200: #a7f3d0;
+    --success-300: #6ee7b7;
+    --success-400: #34d399;
+    --success-500: #10b981;
+    --success-600: #059669;
+    --success-700: #047857;
+    --success-800: #065f46;
+    --success-900: #064e3b;
+    
+    /* Colores neutrales */
+    --neutral-50: #f8fafc;
+    --neutral-100: #f1f5f9;
+    --neutral-200: #e2e8f0;
+    --neutral-300: #cbd5e1;
+    --neutral-400: #94a3b8;
+    --neutral-500: #64748b;
+    --neutral-600: #475569;
+    --neutral-700: #334155;
+    --neutral-800: #1e293b;
+    --neutral-900: #0f172a;
+    
+    /* Colores de estado */
+    --danger-500: #ef4444;
+    --danger-600: #dc2626;
+    --warning-500: #f59e0b;
+    
+    /* Variables de diseño */
+    --color-bg-primary: #ffffff;
+    --color-bg-secondary: #f8fafc;
+    --color-bg-elevated: #ffffff;
+    --color-border-primary: #e2e8f0;
+    --color-text-primary: #1e293b;
+    --color-text-secondary: #475569;
+    --color-text-tertiary: #64748b;
+    
+    /* Espaciado */
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-5: 1.25rem;
+    --space-6: 1.5rem;
+    --space-8: 2rem;
+    
+    /* Radios */
+    --radius-sm: 0.25rem;
+    --radius-md: 0.375rem;
+    --radius-lg: 0.5rem;
+    --radius-xl: 0.75rem;
+    --radius-full: 9999px;
+    
+    /* Sombras */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    
+    /* Transiciones */
+    --transition-fast: 150ms ease;
+    --transition-normal: 300ms ease;
+    
+    /* Tipografía */
+    --font-size-xs: 0.75rem;
+    --font-size-sm: 0.875rem;
+    --font-size-base: 1rem;
+    --font-size-lg: 1.125rem;
+    --font-weight-normal: 400;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.5;
+    color: var(--color-text-primary);
+    background-color: var(--color-bg-primary);
+}
+
 .auth-container {
     min-height: 80vh;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: var(--space-8) var(--space-4);
-    background: linear-gradient(135deg, var(--color-bg-primary) 0%, color-mix(in srgb, var(--success-50) 20%, transparent) 100%);
+    background: linear-gradient(135deg, var(--color-bg-primary) 0%, rgba(16, 185, 129, 0.1) 100%);
     position: relative;
     overflow: hidden;
 }
@@ -22,7 +124,7 @@
     right: -20%;
     width: 100%;
     height: 100%;
-    background: radial-gradient(circle, color-mix(in srgb, var(--success-100) 30%, transparent) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(167, 243, 208, 0.3) 0%, transparent 70%);
     opacity: 0.6;
     z-index: 0;
 }
@@ -38,6 +140,8 @@
     z-index: 1;
     overflow: hidden;
     transition: all var(--transition-normal);
+    width: 100%;
+    max-width: 450px;
 }
 
 .auth-card:hover {
@@ -109,7 +213,7 @@
 .form-control:focus {
     outline: none;
     border-color: var(--success-500);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--success-500) 20%, transparent);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
     background: var(--color-bg-secondary);
 }
 
@@ -225,59 +329,15 @@
     text-decoration: underline;
 }
 
-/* Indicador de fortaleza de contraseña */
-.password-strength {
-    margin-top: var(--space-2);
-}
-
-.strength-meter {
-    height: 4px;
-    background: var(--color-border-primary);
-    border-radius: var(--radius-full);
-    overflow: hidden;
-    margin-bottom: var(--space-2);
-}
-
-.strength-fill {
-    height: 100%;
-    width: 0%;
-    border-radius: var(--radius-full);
-    transition: all var(--transition-normal);
-}
-
-.strength-text {
-    font-size: var(--font-size-xs);
-    color: var(--color-text-tertiary);
-}
-
-.strength-weak { background: var(--danger-500); width: 25%; }
-.strength-fair { background: var(--warning-500); width: 50%; }
-.strength-good { background: var(--success-500); width: 75%; }
-.strength-strong { background: var(--success-600); width: 100%; }
-
-/* Términos y condiciones */
-.terms-check {
-    font-size: var(--font-size-sm);
-}
-
-.terms-link {
-    color: var(--success-600);
-    text-decoration: none;
-}
-
-.terms-link:hover {
-    text-decoration: underline;
-}
-
 /* Estados de validación */
 .form-control.is-invalid {
     border-color: var(--danger-500);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger-500) 20%, transparent);
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
 }
 
 .form-control.is-valid {
     border-color: var(--success-500);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--success-500) 20%, transparent);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
 }
 
 .invalid-feedback {
@@ -286,6 +346,189 @@
     margin-top: var(--space-2);
     font-size: var(--font-size-xs);
     color: var(--danger-600);
+}
+
+.valid-feedback {
+    display: block;
+    width: 100%;
+    margin-top: var(--space-2);
+    font-size: var(--font-size-xs);
+    color: var(--success-600);
+}
+
+/* Indicador de fortaleza de contraseña */
+.password-strength {
+    margin-top: var(--space-2);
+    height: 4px;
+    background: var(--neutral-200);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+    position: relative;
+}
+
+.password-strength-bar {
+    height: 100%;
+    width: 0%;
+    border-radius: var(--radius-full);
+    transition: all var(--transition-normal);
+}
+
+.password-strength-weak {
+    background: var(--danger-500);
+    width: 25%;
+}
+
+.password-strength-fair {
+    background: var(--warning-500);
+    width: 50%;
+}
+
+.password-strength-good {
+    background: var(--success-400);
+    width: 75%;
+}
+
+.password-strength-strong {
+    background: var(--success-600);
+    width: 100%;
+}
+
+.password-strength-text {
+    font-size: var(--font-size-xs);
+    margin-top: var(--space-1);
+    color: var(--color-text-tertiary);
+}
+
+/* Alertas */
+.alert {
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-4);
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+}
+
+.alert-danger {
+    background-color: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: var(--danger-600);
+}
+
+.alert-success {
+    background-color: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    color: var(--success-600);
+}
+
+.alert-dismissible {
+    position: relative;
+}
+
+.btn-close {
+    background: none;
+    border: none;
+    font-size: 1.25rem;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity var(--transition-fast);
+    margin-left: auto;
+}
+
+.btn-close:hover {
+    opacity: 1;
+}
+
+/* Estilos específicos para botón de Google */
+.btn-google {
+    background: white;
+    color: #757575;
+    border: 1.5px solid #dadce0;
+    box-shadow: var(--shadow-sm);
+    transition: all var(--transition-fast);
+    position: relative;
+    text-decoration: none;
+}
+
+.btn-google:hover {
+    background: #f8f9fa;
+    border-color: #d2e3fc;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+    color: #757575;
+    text-decoration: none;
+}
+
+.btn-google:active {
+    transform: translateY(0);
+}
+
+.btn-google::before {
+    content: '';
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    background: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAxOCAxOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE2LjUxIDkuMjA0NTVDMTYuNTEgOC41NjYzNiAxNi40NDkgNy45NTQ1NSAxNi4zMTYgNy4zNjkwOUg5LjIyVjEwLjg0NTVIMTMuNDg3QzEzLjM1IDEyLjA3MDkgMTIuNzM5IDEyLjk3NzMgMTEuNzE2IDEzLjU3NzNWMTUuODE4MkgxNC4yNzdDMTUuODEzIDE0LjM0MDkgMTYuNTEgMTIuMDczMiAxNi41MSA5LjIwNDU1WiIgZmlsbD0iIzQyODVGMyIvPgo8cGF0aCBkPSJNOS4yMiAxOC4wMDAxQzExLjczNyAxOC4wMDAxIDEzLjg1IDE3LjE2MzYgMTUuMzc3IDE1LjgxODJMMTEuNzE2IDEzLjU3NzNDMTAuODc3IDE4LjEwOTEgOS43ODIgMTQuNDE4MiA4LjU2OCAxNC40MTgyQzYuMTE1IDE0LjQxODIgNC4wMzYgMTIuNjMxOCAzLjM0IDEwLjM5NTVIMC42NTYyNVYxMi43MjczQzIuMTc3MyAxNS43MDA5IDUuNDE4MiAxOC4wMDAxIDkuMjIgMTguMDAwMVoiIGZpbGw9IiMzNEE4NTMiLz4KPHBhdGggZD0iTTMuMzQgMTAuMzk1NUMzLjA5IDkuNjYzNjQgMi45NTUgOC44ODQ1NSAyLjk1NSA4LjAwMDAxQzIuOTU1IDcuMTE1NDYgMy4wOSA2LjMzNjM2IDMuMzQgNS42MDQ1NVYzLjI3MjczSDAuNjU2MjVDLTAuMjE4MTgyIDUuMDU5MDkgLTAuNzI3MjczIDcuMDc3MjcgLTAuNzI3MjczIDkuMDAwMDFDLTAuNzI3MjczIDEwLjkyMjcgLTAuMjE4MTgyIDEyLjk0MDkgMC42NTYyNSAxNC43MjczTDMuMzQgMTAuMzk1NVoiIGZpbGw9IiNGQkJCMDAiLz4KPHBhdGggZD0iTTkuMjIgMy41ODE4MkMxMC45NTUgMy41ODE4MiAxMi40NjggNC4yNTQ1NSAxMy41OTUgNS40OTU0NUwxNS40NjggMy42MjI3M0MxMy44NSAxLjg2MzY0IDExLjczNyAwLjkwOTA5MSA5LjIyIDAuOTA5MDkxQzUuNDE4MiAwLjkwOTA5MSAyLjE3NzMgMy4yMDgyNyAwLjY1NjI1IDYuMjcyNzNMMy4zNCA4LjYwNDU1QzQuMDM2IDYuMzY4MTggNi4xMTUgNC41ODE4MiA4LjU2OCA0LjU4MTgyQzkuNzgyIDQuNTgxODIgMTAuODc3IDQuODkwOTEgMTEuNzE2IDUuNDIyNzNWNS40MjI3M0wxNS4zNzcgMy4xODE4MkMxMy44NSAxLjgzNjM2IDExLjczNyAwLjkwOTA5MSA5LjIyIDAuOTA5MDkxVjMuNTgxODJaIiBmaWxsPSIjMzRBODUzIi8+Cjwvc3ZnPgo=') no-repeat center center;
+    background-size: contain;
+    margin-right: 10px;
+}
+
+/* Estados de deshabilitado para cuando Google OAuth no esté configurado */
+.btn-google.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+.btn-google.disabled:hover {
+    background: white;
+    border-color: #dadce0;
+    transform: none;
+    box-shadow: var(--shadow-sm);
+}
+
+/* Form check */
+.form-check {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
+}
+
+.form-check-input {
+    width: 1rem;
+    height: 1rem;
+    margin-top: 0.25rem;
+    flex-shrink: 0;
+}
+
+.form-check-label {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-tertiary);
+    line-height: 1.4;
+}
+
+.form-check-label a {
+    color: var(--success-600);
+    text-decoration: none;
+    font-weight: var(--font-weight-medium);
+}
+
+.form-check-label a:hover {
+    text-decoration: underline;
+}
+
+/* Texto pequeño para enlaces */
+.text-sm {
+    font-size: var(--font-size-sm);
+}
+
+.text-success {
+    color: var(--success-600) !important;
+}
+
+.text-decoration-none {
+    text-decoration: none;
 }
 
 /* Responsive */
@@ -330,527 +573,264 @@
         display: none;
     }
 }
-/* Estilos específicos para botón de Google (los mismos que en login) */
-.btn-google {
-    background: white;
-    color: #757575;
-    border: 1.5px solid #dadce0;
-    box-shadow: var(--shadow-sm);
-    transition: all var(--transition-fast);
-    position: relative;
+
+/* Utilidades de texto */
+.h3 {
+    font-size: 1.75rem;
+    font-weight: var(--font-weight-bold);
+    line-height: 1.2;
 }
 
-.btn-google:hover {
-    background: #f8f9fa;
-    border-color: #d2e3fc;
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-md);
+.mb-2 {
+    margin-bottom: var(--space-2);
 }
 
-.btn-google:active {
-    transform: translateY(0);
+.mb-3 {
+    margin-bottom: var(--space-3);
 }
 
-.btn-google::before {
-    content: '';
-    display: inline-block;
-    width: 18px;
-    height: 18px;
-    background: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAxOCAxOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE2LjUxIDkuMjA0NTVDMTYuNTEgOC41NjYzNiAxNi40NDkgNy45NTQ1NSAxNi4zMTYgNy4zNjkwOUg5LjIyVjEwLjg0NTVIMTMuNDg3QzEzLjM1IDEyLjA3MDkgMTIuNzM5IDEyLjk3NzMgMTEuNzE2IDEzLjU3NzNWMTUuODE4MkgxNC4yNzdDMTUuODEzIDE0LjM0MDkgMTYuNTEgMTIuMDczMiAxNi41MSA5LjIwNDU1WiIgZmlsbD0iIzQyODVGMyIvPgo8cGF0aCBkPSJNOS4yMiAxOC4wMDAxQzExLjczNyAxOC4wMDAxIDEzLjg1IDE3LjE2MzYgMTUuMzc3IDE1LjgxODJMMTEuNzE2IDEzLjU3NzNDMTAuODc3IDE0LjEwOTEgOS43ODIgMTQuNDE4MiA4LjU2OCAxNC40MTgyQzYuMTE1IDE0LjQxODIgNC4wMzYgMTIuNjMxOCAzLjM0IDEwLjM5NTVIMC42NTYyNVYxMi43MjczQzIuMTc3MyAxNS43MDA5IDUuNDE4MiAxOC4wMDAxIDkuMjIgMTguMDAwMVoiIGZpbGw9IiMzNEE4NTMiLz4KPHBhdGggZD0iTTMuMzQgMTAuMzk1NUMzLjA5IDkuNjYzNjQgMi45NTUgOC44ODQ1NSAyLjk1NSA4LjAwMDAxQzIuOTU1IDcuMTE1NDYgMy4wOSA2LjMzNjM2IDMuMzQgNS42MDQ1NVYzLjI3MjczSDAuNjU2MjVDLTAuMjE4MTgyIDUuMDU5MDkgLTAuNzI3MjczIDcuMDc3MjcgLTAuNzI3MjczIDkuMDAwMDFDLTAuNzI3MjczIDEwLjkyMjcgLTAuMjE4MTgyIDEyLjk0MDkgMC42NTYyNSAxNC43MjczTDMuMzQgMTAuMzk1NVoiIGZpbGw9IiNGQkJCMDAiLz4KPHBhdGggZD0iTTkuMjIgMy41ODE4MkMxMC45NTUgMy41ODE4MiAxMi40NjggNC4yNTQ1NSAxMy41OTUgNS40OTU0NUwxNS40NjggMy42MjI3M0MxMy44NSAxLjg2MzY0IDExLjczNyAwLjkwOTA5MSA5LjIyIDAuOTA5MDkxQzUuNDE4MiAwLjkwOTA5MSAyLjE3NzMgMy4yMDgyNyAwLjY1NjI1IDYuMjcyNzNMMy4zNCA4LjYwNDU1QzQuMDM2IDYuMzY4MTggNi4xMTUgNC41ODE4MiA4LjU2OCA0LjU4MTgyQzkuNzgyIDQuNTgxODIgMTAuODc3IDQuODkwOTEgMTEuNzE2IDUuNDIyNzNWNS40MjI3M0wxNS4zNzcgMy4xODE4MkMxMy44NSAxLjgzNjM2IDExLjczNyAwLjkwOTA5MSA5LjIyIDAuOTA5MDkxVjMuNTgxODJaIiBmaWxsPSIjMzRBODUzIi8+Cjwvc3ZnPgo=') no-repeat center center;
-    background-size: contain;
-    margin-right: 10px;
-}
-
-.btn-google.disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none !important;
-}
-
-.btn-google.disabled:hover {
-    background: white;
-    border-color: #dadce0;
-    transform: none;
-    box-shadow: var(--shadow-sm);
-}
-.password-suggestion-modal .modal-content {
-    border-radius: var(--radius-xl);
-    overflow: hidden;
-    border: none;
-    box-shadow: var(--shadow-2xl);
-}
-
-.password-suggestion-modal .modal-header {
-    background: linear-gradient(135deg, var(--success-600), var(--success-700));
-    color: white;
-    border-bottom: none;
-    padding: var(--space-5);
-}
-
-.password-suggestion-modal .modal-title {
-    font-weight: var(--font-weight-semibold);
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-}
-
-.password-suggestion-modal .modal-body {
-    padding: var(--space-5);
-}
-
-.password-suggestion-modal .modal-footer {
-    border-top: 1px solid var(--color-border-primary);
-    padding: var(--space-4) var(--space-5);
-}
-
-.password-suggestion {
-    background: color-mix(in srgb, var(--success-50) 30%, transparent);
-    border: 1px solid var(--success-200);
-    border-radius: var(--radius-md);
-    padding: var(--space-4);
+.mb-4 {
     margin-bottom: var(--space-4);
-    position: relative;
 }
 
-.password-suggestion-text {
-    font-family: 'Courier New', monospace;
-    font-size: var(--font-size-lg);
-    font-weight: var(--font-weight-semibold);
-    color: var(--success-800);
-    letter-spacing: 1px;
-    margin-bottom: var(--space-3);
-    word-break: break-all;
+.opacity-90 {
+    opacity: 0.9;
 }
 
-.password-suggestion-actions {
+.fw-bold {
+    font-weight: var(--font-weight-bold);
+}
+
+/* Utilidades de flexbox */
+.d-flex {
     display: flex;
-    gap: var(--space-3);
-    flex-wrap: wrap;
 }
 
-.password-tips {
-    margin-top: var(--space-4);
-    padding-top: var(--space-4);
-    border-top: 1px solid var(--color-border-primary);
+.justify-content-between {
+    justify-content: space-between;
 }
 
-.password-tips-title {
-    font-weight: var(--font-weight-semibold);
-    margin-bottom: var(--space-3);
-    color: var(--color-text-secondary);
-    font-size: var(--font-size-sm);
+.align-items-center {
+    align-items: center;
 }
 
-.password-tips-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.password-tips-list li {
-    display: flex;
+.align-items-start {
     align-items: flex-start;
-    gap: var(--space-3);
-    margin-bottom: var(--space-3);
-    font-size: var(--font-size-sm);
-    color: var(--color-text-secondary);
 }
 
-.password-tips-list li i {
-    color: var(--success-500);
-    margin-top: 2px;
-    flex-shrink: 0;
+/* Utilidades de espaciado */
+.me-2 {
+    margin-right: var(--space-2);
 }
 
-/* Botón para generar contraseña */
-.password-generate-btn {
-    position: absolute;
-    right: var(--space-3);
-    top: var(--space-3);
-    background: none;
-    border: none;
-    color: var(--success-600);
-    cursor: pointer;
-    padding: var(--space-2);
-    border-radius: var(--radius-sm);
-    transition: all var(--transition-fast);
+.fade {
+    transition: opacity 0.15s linear;
 }
 
-.password-generate-btn:hover {
-    background: var(--success-100);
-    color: var(--success-700);
-}
-
-/* Botón para sugerir contraseña */
-.suggest-password-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-2);
-    background: none;
-    border: none;
-    color: var(--success-600);
-    font-size: var(--font-size-sm);
-    cursor: pointer;
-    padding: var(--space-2) 0;
-    margin-top: var(--space-2);
-    transition: color var(--transition-fast);
-}
-
-.suggest-password-btn:hover {
-    color: var(--success-700);
-    text-decoration: underline;
-}
-
-/* Indicador de fortaleza mejorado */
-.password-strength-indicators {
-    display: flex;
-    gap: var(--space-2);
-    margin-top: var(--space-3);
-}
-
-.strength-indicator {
-    flex: 1;
-    height: 4px;
-    border-radius: var(--radius-full);
-    background: var(--color-border-primary);
-    transition: all var(--transition-normal);
-}
-
-.strength-indicator.active {
-    background: var(--success-500);
-}
-
-.strength-indicator.active.weak {
-    background: var(--danger-500);
-}
-
-.strength-indicator.active.fair {
-    background: var(--warning-500);
-}
-
-.strength-indicator.active.good {
-    background: var(--success-400);
-}
-
-.strength-indicator.active.strong {
-    background: var(--success-600);
-}
-
-/* Mejoras visuales para el campo de contraseña */
-.password-field-wrapper {
-    position: relative;
-}
-
-.toggle-password {
-    position: absolute;
-    right: var(--space-3);
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    color: var(--color-text-tertiary);
-    cursor: pointer;
-    padding: var(--space-2);
-    border-radius: var(--radius-sm);
-    transition: all var(--transition-fast);
-}
-
-.toggle-password:hover {
-    color: var(--color-text-secondary);
-    background: var(--color-bg-secondary);
-}
-
-/* Copiar al portapapeles */
-.copy-password {
-    background: var(--success-500);
-    color: white;
-    border: none;
-    border-radius: var(--radius-md);
-    padding: var(--space-2) var(--space-3);
-    font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-medium);
-    cursor: pointer;
-    transition: all var(--transition-fast);
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-2);
-}
-
-.copy-password:hover {
-    background: var(--success-600);
-    transform: translateY(-1px);
-}
-
-.copy-password.copied {
-    background: var(--success-700);
-}
-
-/* Responsive para el modal */
-@media (max-width: 576px) {
-    .password-suggestion-actions {
-        flex-direction: column;
-    }
-    
-    .copy-password {
-        width: 100%;
-        justify-content: center;
-    }
+.show {
+    opacity: 1;
 }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="auth-container">
-    <div class="col-12 col-sm-10 col-md-8 col-lg-5 col-xl-4">
-        <div class="auth-card">
-            <!-- Header -->
-            <div class="auth-header">
-                <i class="fas fa-user-plus auth-icon"></i>
-                <h1 class="h3 mb-2 fw-bold">Únete a Gestos AI</h1>
-                <p class="mb-0 opacity-90">Crea tu cuenta y comienza a comunicarte</p>
-            </div>
-            
-            <!-- Body -->
-            <div class="auth-body">
-                <!-- Mostrar mensajes flash -->
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                    {% if messages %}
-                        {% for category, message in messages %}
-                            <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show mb-4" role="alert">
-                                <i class="fas fa-{{ 'exclamation-triangle' if category == 'error' else 'check-circle' }} me-2"></i>
-                                {{ message }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
-                            </div>
-                        {% endfor %}
-                    {% endif %}
-                {% endwith %}
-
-                <form method="POST" novalidate>
-                    <!-- Usuario -->
-                    <div class="form-group">
-                        <label for="username" class="form-label">Nombre de usuario</label>
-                        <div class="input-group">
-                            <i class="fas fa-user input-icon"></i>
-                            <input 
-                                type="text" 
-                                id="username"
-                                name="username" 
-                                class="form-control {{ 'is-invalid' if error and 'username' in error }}"
-                                placeholder="Elige un nombre de usuario"
-                                required
-                                autocomplete="username"
-                                value="{{ username if username else '' }}"
-                            >
-                        </div>
-                        {% if error and 'username' in error %}
-                            <div class="invalid-feedback d-block">
-                                {{ error.username }}
-                            </div>
-                        {% endif %}
-                    </div>
-
-                    <!-- Correo electrónico -->
-                    <div class="form-group">
-                        <label for="email" class="form-label">Correo electrónico</label>
-                        <div class="input-group">
-                            <i class="fas fa-envelope input-icon"></i>
-                            <input 
-                                type="email" 
-                                id="email"
-                                name="email" 
-                                class="form-control {{ 'is-invalid' if error and 'email' in error }}"
-                                placeholder="tu@email.com"
-                                required
-                                autocomplete="email"
-                                value="{{ email if email else '' }}"
-                            >
-                        </div>
-                        {% if error and 'email' in error %}
-                            <div class="invalid-feedback d-block">
-                                {{ error.email }}
-                            </div>
-                        {% endif %}
-                    </div>
-
-                    <!-- Contraseña -->
-                    <div class="form-group">
-                        <label for="password" class="form-label">Contraseña</label>
-                        <div class="input-group password-field-wrapper">
-                            <i class="fas fa-lock input-icon"></i>
-                            <input 
-                                type="password" 
-                                id="password"
-                                name="password" 
-                                class="form-control {{ 'is-invalid' if error and 'password' in error }}"
-                                placeholder="Crea una contraseña segura"
-                                required
-                                autocomplete="new-password"
-                                minlength="8"
-                            >
-                            <button type="button" class="toggle-password" id="togglePassword">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                        </div>
-                        
-                        <!-- Botón para sugerir contraseña -->
-                        <button type="button" class="suggest-password-btn" data-bs-toggle="modal" data-bs-target="#passwordSuggestionModal">
-                            <i class="fas fa-lightbulb"></i>
-                            <span>Sugerir una contraseña segura</span>
-                        </button>
-                        
-                        <!-- Indicador de fortaleza mejorado -->
-                        <div class="password-strength">
-                            <div class="strength-meter">
-                                <div class="strength-fill" id="passwordStrength"></div>
-                            </div>
-                            <div class="strength-text" id="passwordText">La contraseña debe tener al menos 8 caracteres</div>
-                            
-                            <!-- Indicadores de nivel de seguridad -->
-                            <div class="password-strength-indicators">
-                                <div class="strength-indicator" id="strengthLength"></div>
-                                <div class="strength-indicator" id="strengthCase"></div>
-                                <div class="strength-indicator" id="strengthNumbers"></div>
-                                <div class="strength-indicator" id="strengthSymbols"></div>
-                            </div>
-                        </div>
-                        
-                        {% if error and 'password' in error %}
-                            <div class="invalid-feedback d-block">
-                                {{ error.password }}
-                            </div>
-                        {% endif %}
-                    </div>
-
-                    <!-- Confirmar contraseña -->
-                    <div class="form-group">
-                        <label for="confirm_password" class="form-label">Confirmar contraseña</label>
-                        <div class="input-group password-field-wrapper">
-                            <i class="fas fa-lock input-icon"></i>
-                            <input 
-                                type="password" 
-                                id="confirm_password"
-                                name="confirm_password" 
-                                class="form-control {{ 'is-invalid' if error and 'confirm_password' in error }}"
-                                placeholder="Repite tu contraseña"
-                                required
-                                autocomplete="new-password"
-                            >
-                            <button type="button" class="toggle-password" id="toggleConfirmPassword">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                        </div>
-                        {% if error and 'confirm_password' in error %}
-                            <div class="invalid-feedback d-block">
-                                {{ error.confirm_password }}
-                            </div>
-                        {% endif %}
-                    </div>
-
-                    <!-- Términos y condiciones -->
-                    <div class="form-group form-check mb-4">
-                        <input type="checkbox" class="form-check-input {{ 'is-invalid' if error and 'terms' in error }}" 
-                               id="terms" name="terms" required>
-                        <label class="form-check-label terms-check" for="terms">
-                            Acepto los 
-                            <a href="#" class="terms-link">Términos de servicio</a> 
-                            y la 
-                            <a href="#" class="terms-link">Política de privacidad</a>
-                        </label>
-                        {% if error and 'terms' in error %}
-                            <div class="invalid-feedback d-block">
-                                {{ error.terms }}
-                            </div>
-                        {% endif %}
-                    </div>
-
-                    <!-- Botón de registro -->
-                    <button type="submit" class="btn-auth btn-success-auth mb-3">
-                        <i class="fas fa-user-plus"></i>
-                        <span>Crear cuenta</span>
-                    </button>
-                </form>
-
-                <!-- Separador -->
-                <div class="divider">
-                    <span class="divider-text">o regístrate con</span>
-                </div>
-
-                <!-- Google register -->
-                <a href="{{ url_for('auth.google_login') }}" 
-                   class="btn-auth btn-google mb-4 {{ 'disabled' if not config.get('GOOGLE_CLIENT_ID') }}" 
-                   {% if not config.get('GOOGLE_CLIENT_ID') %}aria-disabled="true"{% endif %}>
-                    <span>Continuar con Google</span>
-                </a>
-
-                <!-- Login -->
-                <div class="auth-footer">
-                    <p class="mb-2">¿Ya tienes una cuenta?</p>
-                    <a href="{{ url_for('auth.login') }}" class="auth-link">
-                        Inicia sesión aquí
-                    </a>
-                </div>
-            </div>
+    <div class="auth-card">
+        <div class="auth-header">
+            <i class="fas fa-user-plus auth-icon"></i>
+            <h1 class="h3 mb-2 fw-bold">Únete a Gestos AI</h1>
+            <p class="mb-0 opacity-90">Crea tu cuenta para comenzar</p>
         </div>
-    </div>
-</div>
+        
+        <div class="auth-body">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                            <i class="fas fa-{{ 'exclamation-triangle' if category == 'error' else 'check-circle' }} me-2"></i>
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
 
-<!-- Modal de sugerencia de contraseña -->
-<div class="modal fade password-suggestion-modal" id="passwordSuggestionModal" tabindex="-1" aria-labelledby="passwordSuggestionModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="passwordSuggestionModalLabel">
-                    <i class="fas fa-shield-alt"></i>
-                    Sugerencia de contraseña segura
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-            </div>
-            <div class="modal-body">
-                <div class="password-suggestion">
-                    <button type="button" class="password-generate-btn" id="generateNewPassword" title="Generar nueva contraseña">
-                        <i class="fas fa-sync-alt"></i>
-                    </button>
-                    <div class="password-suggestion-text" id="suggestedPassword">Cargando...</div>
-                    <div class="password-suggestion-actions">
-                        <button type="button" class="copy-password" id="copyPassword">
-                            <i class="fas fa-copy"></i>
-                            <span>Copiar contraseña</span>
-                        </button>
-                        <button type="button" class="btn btn-outline-success" id="usePassword">
-                            <i class="fas fa-check"></i>
-                            Usar esta contraseña
-                        </button>
+            <!-- Mostrar error general si existe -->
+            {% if error and 'general' in error %}
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    {{ error.general }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                </div>
+            {% endif %}
+
+            <form method="POST" novalidate>
+                <!-- Nombre completo -->
+                <div class="form-group">
+                    <label for="full_name" class="form-label">Nombre completo</label>
+                    <div class="input-group">
+                        <i class="fas fa-user input-icon"></i>
+                        <input 
+                            type="text" 
+                            id="full_name"
+                            name="full_name" 
+                            class="form-control {{ 'is-invalid' if error and 'full_name' in error }}"
+                            placeholder="Ingresa tu nombre completo"
+                            required
+                            autocomplete="name"
+                            value="{{ full_name if full_name else '' }}"
+                        >
                     </div>
+                    {% if error and 'full_name' in error %}
+                        <div class="invalid-feedback d-block">
+                            {{ error.full_name }}
+                        </div>
+                    {% endif %}
                 </div>
-                
-                <div class="password-tips">
-                    <h6 class="password-tips-title">Consejos para una contraseña segura:</h6>
-                    <ul class="password-tips-list">
-                        <li>
-                            <i class="fas fa-check-circle"></i>
-                            <span>Usa al menos 12 caracteres</span>
-                        </li>
-                        <li>
-                            <i class="fas fa-check-circle"></i>
-                            <span>Combina letras mayúsculas y minúsculas</span>
-                        </li>
-                        <li>
-                            <i class="fas fa-check-circle"></i>
-                            <span>Incluye números y símbolos especiales</span>
-                        </li>
-                        <li>
-                            <i class="fas fa-check-circle"></i>
-                            <span>Evita información personal fácil de adivinar</span>
-                        </li>
-                        <li>
-                            <i class="fas fa-check-circle"></i>
-                            <span>No reutilices contraseñas en diferentes sitios</span>
-                        </li>
-                    </ul>
+
+                <!-- Email -->
+                <div class="form-group">
+                    <label for="email" class="form-label">Correo electrónico</label>
+                    <div class="input-group">
+                        <i class="fas fa-envelope input-icon"></i>
+                        <input 
+                            type="email" 
+                            id="email"
+                            name="email" 
+                            class="form-control {{ 'is-invalid' if error and 'email' in error }}"
+                            placeholder="ejemplo@correo.com"
+                            required
+                            autocomplete="email"
+                            value="{{ email if email else '' }}"
+                        >
+                    </div>
+                    {% if error and 'email' in error %}
+                        <div class="invalid-feedback d-block">
+                            {{ error.email }}
+                        </div>
+                    {% endif %}
                 </div>
+
+                <!-- Usuario -->
+                <div class="form-group">
+                    <label for="username" class="form-label">Usuario</label>
+                    <div class="input-group">
+                        <i class="fas fa-at input-icon"></i>
+                        <input 
+                            type="text" 
+                            id="username"
+                            name="username" 
+                            class="form-control {{ 'is-invalid' if error and 'username' in error }}"
+                            placeholder="Elige un nombre de usuario"
+                            required
+                            autocomplete="username"
+                            value="{{ username if username else '' }}"
+                        >
+                    </div>
+                    {% if error and 'username' in error %}
+                        <div class="invalid-feedback d-block">
+                            {{ error.username }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Contraseña -->
+                <div class="form-group">
+                    <label for="password" class="form-label">Contraseña</label>
+                    <div class="input-group">
+                        <i class="fas fa-lock input-icon"></i>
+                        <input 
+                            type="password" 
+                            id="password"
+                            name="password" 
+                            class="form-control {{ 'is-invalid' if error and 'password' in error }}"
+                            placeholder="Crea una contraseña segura"
+                            required
+                            autocomplete="new-password"
+                        >
+                    </div>
+                    <div class="password-strength">
+                        <div class="password-strength-bar" id="password-strength-bar"></div>
+                    </div>
+                    <div class="password-strength-text" id="password-strength-text">
+                        La contraseña debe tener al menos 8 caracteres
+                    </div>
+                    {% if error and 'password' in error %}
+                        <div class="invalid-feedback d-block">
+                            {{ error.password }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Confirmar contraseña -->
+                <div class="form-group">
+                    <label for="confirm_password" class="form-label">Confirmar contraseña</label>
+                    <div class="input-group">
+                        <i class="fas fa-lock input-icon"></i>
+                        <input 
+                            type="password" 
+                            id="confirm_password"
+                            name="confirm_password" 
+                            class="form-control {{ 'is-invalid' if error and 'confirm_password' in error }}"
+                            placeholder="Repite tu contraseña"
+                            required
+                            autocomplete="new-password"
+                        >
+                    </div>
+                    <div class="valid-feedback" id="password-match-feedback" style="display: none;">
+                        Las contraseñas coinciden
+                    </div>
+                    {% if error and 'confirm_password' in error %}
+                        <div class="invalid-feedback d-block">
+                            {{ error.confirm_password }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Términos y condiciones -->
+                <div class="form-check mb-4">
+                    <input 
+                        type="checkbox" 
+                        class="form-check-input {{ 'is-invalid' if error and 'terms' in error }}" 
+                        id="terms" 
+                        name="terms"
+                        required
+                    >
+                    <label class="form-check-label" for="terms">
+                        Acepto los <a href="#" class="text-success">Términos de servicio</a> y la <a href="#" class="text-success">Política de privacidad</a> de Gestos AI
+                    </label>
+                    {% if error and 'terms' in error %}
+                        <div class="invalid-feedback d-block">
+                            {{ error.terms }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Botón de registro -->
+                <button type="submit" class="btn-auth btn-success-auth mb-3">
+                    <i class="fas fa-user-plus"></i>
+                    <span>Crear cuenta</span>
+                </button>
+            </form>
+
+            <!-- Separador -->
+            <div class="divider">
+                <span class="divider-text">o regístrate con</span>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+
+            <!-- Google login -->
+            <a href="{{ url_for('auth.google_login') }}" 
+               class="btn-auth btn-google mb-4 {{ 'disabled' if not config.get('GOOGLE_CLIENT_ID') }}" 
+               {% if not config.get('GOOGLE_CLIENT_ID') %}aria-disabled="true"{% endif %}>
+                <span>Continuar con Google</span>
+            </a>
+
+            <!-- Login -->
+            <div class="auth-footer">
+                <p class="mb-2">¿Ya tienes una cuenta?</p>
+                <a href="{{ url_for('auth.login') }}" class="auth-link">
+                    Inicia sesión aquí
+                </a>
             </div>
         </div>
     </div>
@@ -859,218 +839,188 @@
 
 {% block scripts %}
 <script>
-// Generador de contraseñas seguras
-function generateSecurePassword() {
-    const lowercase = 'abcdefghijklmnopqrstuvwxyz';
-    const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    const numbers = '0123456789';
-    const symbols = '!@#$%^&*()_+-=[]{}|;:,.<>?';
-    
-    // Asegurar al menos un carácter de cada tipo
-    let password = [
-        lowercase[Math.floor(Math.random() * lowercase.length)],
-        uppercase[Math.floor(Math.random() * uppercase.length)],
-        numbers[Math.floor(Math.random() * numbers.length)],
-        symbols[Math.floor(Math.random() * symbols.length)]
-    ];
-    
-    // Longitud total de la contraseña (12-16 caracteres)
-    const totalLength = 12 + Math.floor(Math.random() * 5);
-    const allChars = lowercase + uppercase + numbers + symbols;
-    
-    // Completar el resto de la contraseña
-    for (let i = password.length; i < totalLength; i++) {
-        password.push(allChars[Math.floor(Math.random() * allChars.length)]);
-    }
-    
-    // Mezclar la contraseña para que los caracteres obligatorios no estén siempre al inicio
-    for (let i = password.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [password[i], password[j]] = [password[j], password[i]];
-    }
-    
-    return password.join('');
-}
-
-// Evaluar fortaleza de contraseña
-function checkPasswordStrength(password) {
-    let strength = 0;
-    let feedback = [];
-    
-    // Longitud
-    if (password.length >= 12) {
-        strength += 2;
-    } else if (password.length >= 8) {
-        strength += 1;
-    } else {
-        feedback.push("Muy corta");
-    }
-    
-    // Letras minúsculas y mayúsculas
-    if (/[a-z]/.test(password) && /[A-Z]/.test(password)) {
-        strength += 2;
-    } else if (/[a-z]/.test(password) || /[A-Z]/.test(password)) {
-        strength += 1;
-    } else {
-        feedback.push("Faltan letras");
-    }
-    
-    // Números
-    if (/\d/.test(password)) {
-        strength += 1;
-    } else {
-        feedback.push("Faltan números");
-    }
-    
-    // Símbolos
-    if (/[^a-zA-Z0-9]/.test(password)) {
-        strength += 1;
-    } else {
-        feedback.push("Faltan símbolos");
-    }
-    
-    // Actualizar indicadores visuales
-    updateStrengthIndicators(password);
-    
-    return { strength, feedback };
-}
-
-// Actualizar indicadores de fortaleza
-function updateStrengthIndicators(password) {
-    const indicators = {
-        length: document.getElementById('strengthLength'),
-        case: document.getElementById('strengthCase'),
-        numbers: document.getElementById('strengthNumbers'),
-        symbols: document.getElementById('strengthSymbols')
-    };
-    
-    // Reiniciar indicadores
-    Object.values(indicators).forEach(indicator => {
-        indicator.classList.remove('active');
-    });
-    
-    // Longitud
-    if (password.length >= 8) {
-        indicators.length.classList.add('active');
-        indicators.length.classList.toggle('weak', password.length < 12);
-        indicators.length.classList.toggle('good', password.length >= 12);
-    }
-    
-    // Mayúsculas y minúsculas
-    if (/[a-z]/.test(password) && /[A-Z]/.test(password)) {
-        indicators.case.classList.add('active', 'good');
-    } else if (/[a-z]/.test(password) || /[A-Z]/.test(password)) {
-        indicators.case.classList.add('active', 'fair');
-    }
-    
-    // Números
-    if (/\d/.test(password)) {
-        indicators.numbers.classList.add('active', password.match(/\d/g).length > 1 ? 'good' : 'fair');
-    }
-    
-    // Símbolos
-    if (/[^a-zA-Z0-9]/.test(password)) {
-        indicators.symbols.classList.add('active', password.match(/[^a-zA-Z0-9]/g).length > 1 ? 'good' : 'fair');
-    }
-}
-
-// Actualizar barra de fortaleza
-function updatePasswordStrength(password) {
-    const strengthBar = document.getElementById('passwordStrength');
-    const strengthText = document.getElementById('passwordText');
-    
-    if (!password) {
-        strengthBar.className = 'strength-fill';
-        strengthBar.style.width = '0%';
-        strengthText.textContent = 'La contraseña debe tener al menos 8 caracteres';
-        return;
-    }
-    
-    const { strength, feedback } = checkPasswordStrength(password);
-    
-    // Actualizar barra visual
-    strengthBar.className = 'strength-fill';
-    
-    if (strength <= 2) {
-        strengthBar.classList.add('strength-weak');
-        strengthText.textContent = 'Contraseña débil' + (feedback.length ? ` - ${feedback.join(', ')}` : '');
-    } else if (strength <= 4) {
-        strengthBar.classList.add('strength-fair');
-        strengthText.textContent = 'Contraseña aceptable' + (feedback.length ? ` - ${feedback.join(', ')}` : '');
-    } else if (strength <= 5) {
-        strengthBar.classList.add('strength-good');
-        strengthText.textContent = 'Contraseña buena';
-    } else {
-        strengthBar.classList.add('strength-strong');
-        strengthText.textContent = 'Contraseña fuerte';
-    }
-}
-
-// Inicializar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', function() {
+    // Elementos del DOM
     const passwordInput = document.getElementById('password');
     const confirmPasswordInput = document.getElementById('confirm_password');
-    const togglePasswordBtn = document.getElementById('togglePassword');
-    const toggleConfirmPasswordBtn = document.getElementById('toggleConfirmPassword');
-    const suggestPasswordBtn = document.querySelector('.suggest-password-btn');
-    const generateNewPasswordBtn = document.getElementById('generateNewPassword');
-    const copyPasswordBtn = document.getElementById('copyPassword');
-    const usePasswordBtn = document.getElementById('usePassword');
-    const suggestedPasswordElement = document.getElementById('suggestedPassword');
-    const passwordModal = document.getElementById('passwordSuggestionModal');
+    const passwordStrengthBar = document.getElementById('password-strength-bar');
+    const passwordStrengthText = document.getElementById('password-strength-text');
+    const passwordMatchFeedback = document.getElementById('password-match-feedback');
+    const form = document.querySelector('form');
     
-    // Generar contraseña inicial para el modal
-    suggestedPasswordElement.textContent = generateSecurePassword();
-    
-    // Alternar visibilidad de contraseña
-    togglePasswordBtn.addEventListener('click', function() {
-        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-        passwordInput.setAttribute('type', type);
-        togglePasswordBtn.innerHTML = type === 'password' ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
-    });
-    
-    toggleConfirmPasswordBtn.addEventListener('click', function() {
-        const type = confirmPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-        confirmPasswordInput.setAttribute('type', type);
-        toggleConfirmPasswordBtn.innerHTML = type === 'password' ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
-    });
-    
-    // Evaluar fortaleza de contraseña en tiempo real
-    passwordInput.addEventListener('input', function() {
-        updatePasswordStrength(this.value);
-    });
-    
-    // Generar nueva contraseña
-    generateNewPasswordBtn.addEventListener('click', function() {
-        suggestedPasswordElement.textContent = generateSecurePassword();
-    });
-    
-    // Copiar contraseña al portapapeles
-    copyPasswordBtn.addEventListener('click', function() {
-        const password = suggestedPasswordElement.textContent;
-        navigator.clipboard.writeText(password).then(() => {
-            copyPasswordBtn.innerHTML = '<i class="fas fa-check"></i><span>¡Copiada!</span>';
-            copyPasswordBtn.classList.add('copied');
-            
-            setTimeout(() => {
-                copyPasswordBtn.innerHTML = '<i class="fas fa-copy"></i><span>Copiar contraseña</span>';
-                copyPasswordBtn.classList.remove('copied');
-            }, 2000);
-        });
-    });
-    
-    // Usar contraseña sugerida
-    usePasswordBtn.addEventListener('click', function() {
-        const password = suggestedPasswordElement.textContent;
-        passwordInput.value = password;
-        confirmPasswordInput.value = password;
-        updatePasswordStrength(password);
+    // Función para calcular la fortaleza de la contraseña
+    function calculatePasswordStrength(password) {
+        let strength = 0;
+        let feedback = '';
         
-        // Cerrar modal
-        const modal = bootstrap.Modal.getInstance(passwordModal);
-        modal.hide();
+        // Longitud mínima
+        if (password.length >= 8) strength += 25;
+        
+        // Contiene letras minúsculas y mayúsculas
+        if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength += 25;
+        
+        // Contiene números
+        if (/[0-9]/.test(password)) strength += 25;
+        
+        // Contiene caracteres especiales
+        if (/[^A-Za-z0-9]/.test(password)) strength += 25;
+        
+        // Determinar texto de feedback
+        if (password.length === 0) {
+            feedback = 'La contraseña debe tener al menos 8 caracteres';
+        } else if (strength < 50) {
+            feedback = 'Débil - Añade mayúsculas, números o símbolos';
+        } else if (strength < 75) {
+            feedback = 'Aceptable - Podría ser más segura';
+        } else if (strength < 100) {
+            feedback = 'Buena - Contraseña segura';
+        } else {
+            feedback = 'Excelente - Contraseña muy segura';
+        }
+        
+        return { strength, feedback };
+    }
+    
+    // Actualizar indicador de fortaleza de contraseña
+    function updatePasswordStrength() {
+        const password = passwordInput.value;
+        const { strength, feedback } = calculatePasswordStrength(password);
+        
+        // Actualizar barra de progreso
+        passwordStrengthBar.className = 'password-strength-bar';
+        passwordStrengthBar.style.width = strength + '%';
+        
+        if (strength < 25) {
+            passwordStrengthBar.classList.add('password-strength-weak');
+        } else if (strength < 50) {
+            passwordStrengthBar.classList.add('password-strength-fair');
+        } else if (strength < 75) {
+            passwordStrengthBar.classList.add('password-strength-good');
+        } else {
+            passwordStrengthBar.classList.add('password-strength-strong');
+        }
+        
+        // Actualizar texto
+        passwordStrengthText.textContent = feedback;
+        passwordStrengthText.style.color = getComputedStyle(passwordStrengthBar).backgroundColor;
+    }
+    
+    // Verificar si las contraseñas coinciden
+    function checkPasswordMatch() {
+        const password = passwordInput.value;
+        const confirmPassword = confirmPasswordInput.value;
+        
+        if (confirmPassword.length === 0) {
+            passwordMatchFeedback.style.display = 'none';
+            confirmPasswordInput.classList.remove('is-valid', 'is-invalid');
+            return;
+        }
+        
+        if (password === confirmPassword && password.length > 0) {
+            passwordMatchFeedback.style.display = 'block';
+            confirmPasswordInput.classList.add('is-valid');
+            confirmPasswordInput.classList.remove('is-invalid');
+        } else {
+            passwordMatchFeedback.style.display = 'none';
+            confirmPasswordInput.classList.add('is-invalid');
+            confirmPasswordInput.classList.remove('is-valid');
+        }
+    }
+    
+    // Event listeners
+    passwordInput.addEventListener('input', function() {
+        updatePasswordStrength();
+        checkPasswordMatch();
     });
     
+    confirmPasswordInput.addEventListener('input', checkPasswordMatch);
+    
+    // Validación en tiempo real para otros campos
+    const inputs = form.querySelectorAll('input[required]');
+    inputs.forEach(input => {
+        if (input.type !== 'password' && input.type !== 'checkbox') {
+            input.addEventListener('blur', function() {
+                validateField(this);
+            });
+            
+            input.addEventListener('input', function() {
+                if (this.classList.contains('is-invalid')) {
+                    validateField(this);
+                }
+            });
+        }
+    });
+    
+    function validateField(field) {
+        if (field.type === 'checkbox') {
+            if (!field.checked) {
+                field.classList.add('is-invalid');
+                field.classList.remove('is-valid');
+            } else {
+                field.classList.remove('is-invalid');
+                field.classList.add('is-valid');
+            }
+            return;
+        }
+        
+        if (field.value.trim() === '') {
+            field.classList.add('is-invalid');
+            field.classList.remove('is-valid');
+        } else {
+            field.classList.remove('is-invalid');
+            field.classList.add('is-valid');
+        }
+    }
+    
+    // Validación de email
+    const emailInput = document.getElementById('email');
+    emailInput.addEventListener('blur', function() {
+        const email = this.value.trim();
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        
+        if (email === '') {
+            this.classList.add('is-invalid');
+            this.classList.remove('is-valid');
+        } else if (!emailRegex.test(email)) {
+            this.classList.add('is-invalid');
+            this.classList.remove('is-valid');
+        } else {
+            this.classList.remove('is-invalid');
+            this.classList.add('is-valid');
+        }
+    });
+    
+    // Prevenir envío doble del formulario - VERSIÓN MEJORADA
+    form.addEventListener('submit', function(e) {
+        const submitButton = this.querySelector('button[type="submit"]');
+        const originalHTML = submitButton.innerHTML;
+        
+        // Solo deshabilitar si el formulario es válido
+        if (this.checkValidity()) {
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span> Creando cuenta...</span>';
+            
+            // Re-habilitar después de 10 segundos por si hay error
+            setTimeout(() => {
+                submitButton.disabled = false;
+                submitButton.innerHTML = originalHTML;
+            }, 10000);
+        }
+    });
+    
+    // Mejora de accesibilidad para mensajes de error
+    const errorElements = document.querySelectorAll('.invalid-feedback');
+    errorElements.forEach(error => {
+        error.setAttribute('role', 'alert');
+        error.setAttribute('aria-live', 'polite');
+    });
+
+    // Auto-focus en el primer campo
+    const firstInput = form.querySelector('input[required]:not([type="checkbox"])');
+    if (firstInput) {
+        firstInput.focus();
+    }
+
     // Manejar botón de Google deshabilitado
     const googleBtn = document.querySelector('.btn-google.disabled');
     if (googleBtn) {
@@ -1078,6 +1028,18 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
         });
     }
+    
+    // Manejo de alertas dismissibles
+    const alertCloseButtons = document.querySelectorAll('.alert-dismissible .btn-close');
+    alertCloseButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const alert = this.closest('.alert');
+            alert.classList.remove('show');
+            setTimeout(() => {
+                alert.remove();
+            }, 150);
+        });
+    });
 });
 </script>
 {% endblock %}

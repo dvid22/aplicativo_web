@@ -1,6 +1,10 @@
 from flask import Flask, render_template
+from flask_mail import Mail  # ✅ AGREGAR ESTA IMPORTACIÓN
 from config import Config
 from app.extensions import mongo, login_manager
+
+# ✅ INICIALIZAR FLASK-MAIL
+mail = Mail()
 
 def create_app():
     app = Flask(__name__)
@@ -12,6 +16,7 @@ def create_app():
     # Inicializar extensiones
     mongo.init_app(app)
     login_manager.init_app(app)
+    mail.init_app(app)  # ✅ INICIALIZAR MAIL CON LA APP
 
     # 🔧 Agregar la instancia de mongo al contexto de la app
     app.mongo = mongo
