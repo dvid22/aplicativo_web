@@ -13,4 +13,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 EXPOSE 8000
-CMD ["gunicorn", "app:app", "-b", "0.0.0.0:8000"]
+
+# USA run.py en lugar de app.py
+CMD ["gunicorn", "run:app", "-b", "0.0.0.0:8000"]
