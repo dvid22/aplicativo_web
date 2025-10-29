@@ -10,9 +10,9 @@ Flask-Mail==0.9.1
 pymongo==4.5.0
 dnspython==2.4.2
 
-# Computer Vision (COMPATIBLE CON PYTHON 3.10)
+# Computer Vision (COMPATIBLE CON PYTHON 3.11)
 opencv-python==4.8.1.78
-mediapipe==0.9.1.0
+mediapipe==0.10.9
 numpy==1.24.3
 
 # Utilidades
