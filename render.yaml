@@ -7,7 +7,7 @@ services:
     branch: main
     pythonVersion: "3.11.4"
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app
+    startCommand: python run.py
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.4
