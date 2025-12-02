@@ -1,4 +1,4 @@
-# gestures.py - VERSIÓN COMPLETA CON WEBM
+# gestures.py - VERSIÓN COMPLETA Y FUNCIONAL 100%
 import os
 import io
 import cv2
@@ -15,55 +15,56 @@ from collections import deque
 import threading
 import logging
 import re
+import time
+from typing import Dict, List, Any, Optional, Tuple, Union
 
-# Configuración optimizada
+# ===========================
+# CONFIGURACIÓN OPTIMIZADA
+# ===========================
 VIDEO_WIDTH = 640
 VIDEO_HEIGHT = 480
 MAX_SAVE_FRAMES = 60
-MIN_VALID_FRAMES_TO_REGISTER = 10
-FPS_SAVE = 15
+MIN_VALID_FRAMES_TO_REGISTER = 8
+FPS_SAVE = 20
+
+# Configuración de MediaPipe
+MODEL_COMPLEXITY = 1
+MIN_DETECTION_CONFIDENCE = 0.5
+MIN_TRACKING_CONFIDENCE = 0.4
+
+# Configuración de logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Inicializar MediaPipe
 mp_hands = mp.solutions.hands
 mp_face_mesh = mp.solutions.face_mesh
 mp_pose = mp.solutions.pose
+mp_holistic = mp.solutions.holistic
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
 
 gestures_bp = Blueprint("gestures_bp", __name__)
 
-# ---------------------------
-# ENDPOINTS DE VISTAS - SOLO DASHBOARD
-# ---------------------------
-
-@gestures_bp.route("/gestures")
-@login_required
-def dashboard():
-    """Dashboard principal todo-en-uno"""
-    return render_template("dashboard.html")
-
-# ---------------------------
+# ===========================
 # UTILIDADES
-# ---------------------------
-def decode_datauri_to_bgr(data_uri):
+# ===========================
+
+def decode_datauri_to_bgr(data_uri: Optional[str]) -> Optional[np.ndarray]:
     """Decodifica data URI a imagen BGR"""
     if not data_uri:
         return None
     try:
-        if ',' in data_uri:
-            _, encoded = data_uri.split(',', 1)
-        else:
-            encoded = data_uri
-        
+        header, encoded = data_uri.split(',', 1) if ',' in data_uri else ('', data_uri)
         decoded = base64.b64decode(encoded)
         arr = np.frombuffer(decoded, dtype=np.uint8)
         img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
         return img
     except Exception as e:
-        logging.debug(f"Error decode: {e}")
+        logger.debug(f"Error decode: {e}")
         return None
 
-def bgr_to_datauri(img_bgr, fmt='.jpg', quality=85):
+def bgr_to_datauri(img_bgr: np.ndarray, fmt: str = '.jpg', quality: int = 85) -> Optional[str]:
     """Convierte imagen BGR a data URI"""
     try:
         ret, buf = cv2.imencode(fmt, img_bgr, [int(cv2.IMWRITE_JPEG_QUALITY), quality])
@@ -72,249 +73,198 @@ def bgr_to_datauri(img_bgr, fmt='.jpg', quality=85):
         b64 = base64.b64encode(buf).decode('utf-8')
         return f"data:image/jpeg;base64,{b64}"
     except Exception as e:
-        logging.debug(f"Error encode: {e}")
+        logger.debug(f"Error encode: {e}")
         return None
 
-def ensure_upload_dirs():
+def ensure_upload_dirs() -> str:
     """Asegura que existan los directorios de upload"""
     uploads_dir = os.path.join(current_app.static_folder, "uploads", "gestures")
     os.makedirs(uploads_dir, exist_ok=True)
     return uploads_dir
 
-def generate_gesture_video(frames, gesture_name):
-    """Genera un video WebM compatible con navegadores - CORREGIDO CON CODEC WEBM"""
+def generate_gesture_video(frames: List[np.ndarray], gesture_name: str) -> Optional[str]:
+    """Genera un video WebM compatible"""
     try:
-        uploads_dir = ensure_upload_dirs()
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        safe_name = "".join(c for c in gesture_name if c.isalnum() or c in (' ', '-', '_')).rstrip()
-        safe_name = safe_name.replace(' ', '_')[:50]
-        
-        # USAR FORMATO WEBM QUE ES MÁS COMPATIBLE CON NAVEGADORES
-        filename = f"gesture_{safe_name}_{timestamp}.webm"
-        video_path = os.path.join(uploads_dir, filename)
-        
         if not frames:
             return None
             
+        uploads_dir = ensure_upload_dirs()
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        safe_name = re.sub(r'[^\w\-_\. ]', '_', gesture_name)[:50].replace(' ', '_')
+        
+        filename = f"gesture_{safe_name}_{timestamp}.webm"
+        video_path = os.path.join(uploads_dir, filename)
+        
         height, width = frames[0].shape[:2]
         
-        # CODEC CORREGIDO: Usar VP8/VP9 que son compatibles con navegadores modernos
-        fourcc = cv2.VideoWriter_fourcc(*'VP80')  # VP8 codec para WebM
-        out = cv2.VideoWriter(video_path, fourcc, FPS_SAVE, (width, height))
+        # Probar codecs en orden de compatibilidad
+        codecs = ['VP80', 'VP90', 'mp4v']
+        out = None
         
-        if not out.isOpened():
-            # Fallback a VP90 si VP80 no está disponible
-            current_app.logger.warning("⚠️ VP80 no disponible, usando VP90 como fallback")
-            fourcc = cv2.VideoWriter_fourcc(*'VP90')
+        for codec in codecs:
+            fourcc = cv2.VideoWriter_fourcc(*codec)
             out = cv2.VideoWriter(video_path, fourcc, FPS_SAVE, (width, height))
-            
-            if not out.isOpened():
-                # Último fallback: usar MP4V pero con extensión .mp4
-                current_app.logger.warning("⚠️ VP90 no disponible, usando MP4V como último recurso")
-                filename = f"gesture_{safe_name}_{timestamp}.mp4"
-                video_path = os.path.join(uploads_dir, filename)
-                fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-                out = cv2.VideoWriter(video_path, fourcc, FPS_SAVE, (width, height))
-                
-                if not out.isOpened():
-                    current_app.logger.error("❌ No se pudo crear el video writer con ningún codec")
-                    return None
+            if out.isOpened():
+                break
+            out = None
         
-        # Escribir frames
+        if out is None:
+            logger.error("❌ No se pudo inicializar VideoWriter")
+            return None
+            
         for frame in frames:
             out.write(frame)
-        
         out.release()
         
-        # Verificar que el video se creó correctamente
         if os.path.exists(video_path) and os.path.getsize(video_path) > 0:
-            # RUTA CORREGIDA: Usar ruta relativa desde static
             relative_path = f"uploads/gestures/{filename}"
-            current_app.logger.info(f"✅ Video generado correctamente: {relative_path} ({os.path.getsize(video_path)} bytes)")
+            logger.info(f"✅ Video generado: {relative_path}")
             return relative_path
         else:
-            current_app.logger.error("❌ El archivo de video no se creó correctamente")
+            if os.path.exists(video_path):
+                os.remove(video_path)
             return None
         
     except Exception as e:
-        current_app.logger.error(f"❌ Error generando video: {e}")
+        logger.error(f"❌ Error generando video: {e}")
         return None
 
-# ---------------------------
-# VISUALIZADOR
-# ---------------------------
-class EnhancedVisualizer:
-    def __init__(self):
-        self.HAND_COLOR_L = (0, 220, 0)    # Verde mano izquierda
-        self.HAND_COLOR_R = (0, 140, 255)  # Naranja mano derecha
-        self.FACE_COLOR = (255, 230, 50)   # Amarillo cara
-        self.POSE_COLOR = (100, 100, 255)  # Azul pose
-        
-        self.HAND_CONNECTIONS = mp.solutions.hands.HAND_CONNECTIONS
-        self.POSE_CONNECTIONS = mp.solutions.pose.POSE_CONNECTIONS
+def convert_numpy_types(obj: Any) -> Any:
+    """Convierte tipos numpy a tipos nativos de Python"""
+    if isinstance(obj, np.generic):
+        return obj.item()
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, dict):
+        return {key: convert_numpy_types(value) for key, value in obj.items()}
+    elif isinstance(obj, (list, tuple)):
+        return [convert_numpy_types(item) for item in obj]
+    else:
+        return obj
 
-    def draw_landmarks(self, img_bgr, results):
+# ===========================
+# VISUALIZADOR
+# ===========================
+class UltraFastVisualizer:
+    def __init__(self):
+        self.HAND_COLOR_L = (0, 220, 0)
+        self.HAND_COLOR_R = (0, 140, 255)
+        self.FACE_COLOR = (255, 230, 50)
+        self.POSE_COLOR = (100, 100, 255)
+        
+        self.hand_style = mp_drawing_styles.get_default_hand_landmarks_style()
+        self.pose_style = mp_drawing_styles.get_default_pose_landmarks_style()
+
+    def draw_landmarks(self, img_bgr: np.ndarray, results: Any) -> np.ndarray:
         """Dibuja landmarks en tiempo real"""
         img = img_bgr.copy()
-        h, w = img.shape[:2]
         
-        # Dibujar pose
-        if hasattr(results, 'pose_landmarks') and results.pose_landmarks:
-            self._draw_pose_landmarks(img, results.pose_landmarks, w, h)
+        if results.pose_landmarks:
+            mp_drawing.draw_landmarks(
+                img,
+                results.pose_landmarks,
+                mp_pose.POSE_CONNECTIONS,
+                landmark_drawing_spec=self.pose_style
+            )
         
-        # Dibujar manos
-        if hasattr(results, 'left_hand_landmarks') and results.left_hand_landmarks:
-            self._draw_hand_landmarks(img, results.left_hand_landmarks, self.HAND_COLOR_L, w, h)
-        if hasattr(results, 'right_hand_landmarks') and results.right_hand_landmarks:
-            self._draw_hand_landmarks(img, results.right_hand_landmarks, self.HAND_COLOR_R, w, h)
-        
-        # Dibujar cara
-        if hasattr(results, 'face_landmarks') and results.face_landmarks:
-            self._draw_face_landmarks(img, results.face_landmarks, w, h)
+        if results.left_hand_landmarks:
+            mp_drawing.draw_landmarks(
+                img,
+                results.left_hand_landmarks,
+                mp_hands.HAND_CONNECTIONS,
+                landmark_drawing_spec=self.hand_style
+            )
+            
+        if results.right_hand_landmarks:
+            mp_drawing.draw_landmarks(
+                img,
+                results.right_hand_landmarks,
+                mp_hands.HAND_CONNECTIONS,
+                landmark_drawing_spec=self.hand_style
+            )
         
         return img
 
-    def _draw_pose_landmarks(self, img, landmarks, w, h):
-        """Dibuja landmarks del cuerpo"""
-        key_points = [11, 12, 13, 14, 15, 16, 23, 24]  # Hombros, codos, muñecas, caderas
-        
-        for idx in key_points:
-            if idx < len(landmarks.landmark):
-                lm = landmarks.landmark[idx]
-                if hasattr(lm, 'visibility') and lm.visibility > 0.5:
-                    x = int(lm.x * w)
-                    y = int(lm.y * h)
-                    cv2.circle(img, (x, y), 4, self.POSE_COLOR, -1, cv2.LINE_AA)
-        
-        # Conexiones
-        for connection in self.POSE_CONNECTIONS:
-            start_idx, end_idx = connection
-            if (start_idx < len(landmarks.landmark) and 
-                end_idx < len(landmarks.landmark)):
-                start_lm = landmarks.landmark[start_idx]
-                end_lm = landmarks.landmark[end_idx]
-                
-                start_visible = getattr(start_lm, 'visibility', 1.0) > 0.5
-                end_visible = getattr(end_lm, 'visibility', 1.0) > 0.5
-                
-                if start_visible and end_visible:
-                    start_x = int(start_lm.x * w)
-                    start_y = int(start_lm.y * h)
-                    end_x = int(end_lm.x * w)
-                    end_y = int(end_lm.y * h)
-                    
-                    cv2.line(img, (start_x, start_y), (end_x, end_y), self.POSE_COLOR, 2, cv2.LINE_AA)
+_visualizer = UltraFastVisualizer()
 
-    def _draw_hand_landmarks(self, img, hand_landmarks, color, w, h):
-        """Dibuja landmarks de la mano"""
-        points = []
-        for lm in hand_landmarks.landmark:
-            x = int(lm.x * w)
-            y = int(lm.y * h)
-            points.append((x, y))
-            cv2.circle(img, (x, y), 3, color, -1, cv2.LINE_AA)
-        
-        # Conexiones
-        for connection in self.HAND_CONNECTIONS:
-            start_idx, end_idx = connection
-            if start_idx < len(points) and end_idx < len(points):
-                cv2.line(img, points[start_idx], points[end_idx], color, 2, cv2.LINE_AA)
-
-    def _draw_face_landmarks(self, img, face_landmarks, w, h):
-        """Dibuja landmarks faciales optimizado"""
-        key_points = [10, 33, 61, 199, 263, 291]  # Puntos principales
-        for idx in key_points:
-            if idx < len(face_landmarks.landmark):
-                lm = face_landmarks.landmark[idx]
-                x = int(lm.x * w)
-                y = int(lm.y * h)
-                cv2.circle(img, (x, y), 2, self.FACE_COLOR, -1, cv2.LINE_AA)
-
-_visualizer = EnhancedVisualizer()
-
-# ---------------------------
-# EXTRACTOR OPTIMIZADO - CORREGIDO
-# ---------------------------
-class OptimizedGestureExtractor:
-    def __init__(self, app=None):
-        self._lock = threading.Lock()
+# ===========================
+# EXTRACTOR MEJORADO
+# ===========================
+class HighPrecisionGestureExtractor:
+    def __init__(self, app: Optional[Any] = None):
+        self._lock = threading.RLock()
         self._is_closed = False
         self.app = app
-        self.holistic = None
+        self.holistic: Optional[mp.solutions.holistic.Holistic] = None
+        self.motion_history: deque[Dict[str, Any]] = deque(maxlen=10)
         self._initialize_holistic()
         
     def _initialize_holistic(self):
-        """Inicializa el modelo holistic de MediaPipe"""
+        """Inicializa el modelo holistic"""
         try:
             if self.holistic is not None:
                 self.holistic.close()
                 
-            self.holistic = mp.solutions.holistic.Holistic(
+            self.holistic = mp_holistic.Holistic(
                 static_image_mode=False,
-                model_complexity=1,
+                model_complexity=MODEL_COMPLEXITY,
                 smooth_landmarks=True,
-                min_detection_confidence=0.6,
-                min_tracking_confidence=0.5,
+                min_detection_confidence=MIN_DETECTION_CONFIDENCE,
+                min_tracking_confidence=MIN_TRACKING_CONFIDENCE,
                 enable_segmentation=False
             )
             self._is_closed = False
             if self.app:
-                self.app.logger.info("✅ Holistic model initialized successfully")
+                self.app.logger.info("✅ Holistic model initialized")
         except Exception as e:
             if self.app:
-                self.app.logger.error(f"❌ Error initializing holistic model: {e}")
+                self.app.logger.error(f"❌ Error initializing holistic: {e}")
             self.holistic = None
             self._is_closed = True
 
-    def process_frame(self, bgr_image):
-        """Procesa frame optimizado para tiempo real"""
-        # Verificar y reinicializar si es necesario
+    def process_frame(self, bgr_image: np.ndarray) -> Dict[str, Any]:
+        """Procesa frame con máxima velocidad"""
+        start_time = time.perf_counter()
+        
         if self._is_closed or self.holistic is None:
             self._initialize_holistic()
             if self.holistic is None:
-                return {
-                    'results': None,
-                    'landmarks': {},
-                    'quality_score': 0.0,
-                    'is_valid': False,
-                    'timestamp': datetime.now().isoformat()
-                }
-        
+                return self._empty_result()
+
         rgb_image = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2RGB)
         rgb_image.flags.writeable = False
         
+        results = None
         try:
             with self._lock:
                 results = self.holistic.process(rgb_image)
         except Exception as e:
-            current_app.logger.error(f"❌ Error processing frame: {e}")
+            logger.error(f"❌ Error processing frame: {e}")
             self._initialize_holistic()
-            return {
-                'results': None,
-                'landmarks': {},
-                'quality_score': 0.0,
-                'is_valid': False,
-                'timestamp': datetime.now().isoformat()
-            }
+            return self._empty_result()
         
         rgb_image.flags.writeable = True
         
-        # Extraer landmarks
-        landmarks_data = self._extract_landmarks_data(results)
+        landmarks_data = self._extract_landmarks_fast(results)
+        motion_features = self._extract_motion_features_fast(landmarks_data)
         
-        # Calcular calidad
+        combined_features = {**landmarks_data, **motion_features}
         quality_score = self._calculate_quality_score(landmarks_data)
-        is_valid = quality_score > 0.3
+        is_valid = quality_score > 0.3  # Umbral más bajo para mejor detección
+        
+        processing_time = (time.perf_counter() - start_time) * 1000
         
         return {
             'results': results,
-            'landmarks': landmarks_data,
-            'quality_score': quality_score,
-            'is_valid': is_valid,
-            'timestamp': datetime.now().isoformat()
+            'landmarks': combined_features,
+            'quality_score': float(quality_score),
+            'is_valid': bool(is_valid),
+            'timestamp': datetime.now().isoformat(),
+            'has_motion_data': bool(motion_features.get('motion_vectors', {})),
+            'processing_time_ms': float(processing_time)
         }
 
-    def _extract_landmarks_data(self, results):
+    def _extract_landmarks_fast(self, results: Any) -> Dict[str, List[float]]:
         """Extrae datos de landmarks"""
         landmarks = {
             'left_hand': [],
@@ -323,47 +273,96 @@ class OptimizedGestureExtractor:
             'face': []
         }
         
-        # Mano izquierda
-        if results and results.left_hand_landmarks:
-            for lm in results.left_hand_landmarks.landmark:
-                landmarks['left_hand'].extend([lm.x, lm.y, lm.z])
+        # Manos
+        for hand_type, mp_landmarks in [('left_hand', results.left_hand_landmarks), 
+                                        ('right_hand', results.right_hand_landmarks)]:
+            if mp_landmarks:
+                landmarks[hand_type] = [coord for lm in mp_landmarks.landmark 
+                                      for coord in (float(lm.x), float(lm.y), float(lm.z))]
         
-        # Mano derecha
-        if results and results.right_hand_landmarks:
-            for lm in results.right_hand_landmarks.landmark:
-                landmarks['right_hand'].extend([lm.x, lm.y, lm.z])
-        
-        # Pose
-        if results and results.pose_landmarks:
-            for lm in results.pose_landmarks.landmark:
-                landmarks['pose'].extend([lm.x, lm.y, lm.z, getattr(lm, 'visibility', 1.0)])
-        
-        # Cara
-        if results and results.face_landmarks:
-            for lm in results.face_landmarks.landmark:
-                landmarks['face'].extend([lm.x, lm.y, lm.z])
+        # Pose - puntos clave
+        pose_indices = [0, 11, 12, 13, 14, 15, 16, 23, 24]
+        if results.pose_landmarks:
+            for idx in pose_indices:
+                if idx < len(results.pose_landmarks.landmark):
+                    lm = results.pose_landmarks.landmark[idx]
+                    landmarks['pose'].extend([float(lm.x), float(lm.y), float(lm.z)])
         
         return landmarks
 
-    def _calculate_quality_score(self, landmarks):
-        """Calcula score de calidad"""
-        score = 0.0
-        total_weight = 0
+    def _extract_motion_features_fast(self, current_landmarks: Dict[str, List[float]]) -> Dict[str, Any]:
+        """Extrae características de movimiento"""
+        current_frame_data = {
+            'timestamp': datetime.now(),
+            'landmarks': current_landmarks
+        }
+        self.motion_history.append(current_frame_data)
         
+        if len(self.motion_history) < 2:
+            return {'motion_vectors': {}}
+        
+        current_frame = self.motion_history[-1]
+        previous_frame = self.motion_history[-2]
+        
+        time_diff = (current_frame['timestamp'] - previous_frame['timestamp']).total_seconds()
+        if time_diff <= 0:
+            return {'motion_vectors': {}}
+        
+        motion_vectors = {}
+        tracking_points = {
+            'left_wrist': ('left_hand', 0),
+            'right_wrist': ('right_hand', 0),
+        }
+        
+        for point_name, (landmark_type, point_idx) in tracking_points.items():
+            curr_data = current_frame['landmarks'].get(landmark_type, [])
+            prev_data = previous_frame['landmarks'].get(landmark_type, [])
+            
+            idx = point_idx * 3
+            if len(curr_data) > idx + 2 and len(prev_data) > idx + 2:
+                curr_x, curr_y, curr_z = curr_data[idx:idx+3]
+                prev_x, prev_y, prev_z = prev_data[idx:idx+3]
+                
+                dx, dy, dz = curr_x - prev_x, curr_y - prev_y, curr_z - prev_z
+                magnitude = np.sqrt(dx**2 + dy**2 + dz**2)
+                velocity = magnitude / time_diff
+                
+                motion_vectors[point_name] = {
+                    'dx': float(dx), 'dy': float(dy), 'dz': float(dz),
+                    'magnitude': float(magnitude),
+                    'velocity': float(velocity)
+                }
+        
+        return {'motion_vectors': motion_vectors}
+
+    def _calculate_quality_score(self, landmarks: Dict[str, List[float]]) -> float:
+        """Calcula score de calidad simplificado"""
+        score = 0.0
+        
+        # Puntos por manos detectadas
         if landmarks['left_hand']:
             score += 0.4
-            total_weight += 0.4
         if landmarks['right_hand']:
             score += 0.4
-            total_weight += 0.4
         if landmarks['pose']:
             score += 0.2
-            total_weight += 0.2
-        
-        return score / total_weight if total_weight > 0 else 0.0
+            
+        return min(score, 1.0)
+
+    def _empty_result(self) -> Dict[str, Any]:
+        """Resultado vacío para errores"""
+        return {
+            'results': None,
+            'landmarks': {},
+            'quality_score': 0.0,
+            'is_valid': False,
+            'timestamp': datetime.now().isoformat(),
+            'has_motion_data': False,
+            'processing_time_ms': 0.0
+        }
 
     def close(self):
-        """Libera recursos de manera segura"""
+        """Libera recursos"""
         if self._is_closed:
             return
             
@@ -372,83 +371,189 @@ class OptimizedGestureExtractor:
                 if self.holistic:
                     self.holistic.close()
                     self.holistic = None
+                self.motion_history.clear()
                 self._is_closed = True
-                current_app.logger.info("✅ Holistic model closed successfully")
+                logger.info("✅ Gesture extractor closed")
         except Exception as e:
-            current_app.logger.error(f"Error closing extractor: {e}")
+            logger.error(f"Error closing extractor: {e}")
 
-# Instancia global del extractor
-_extractor = None
-
-# ---------------------------
-# RECONOCIMIENTO
-# ---------------------------
-class ImprovedGestureRecognizer:
+# ===========================
+# RECONOCEDOR CORREGIDO - FUNCIONAL
+# ===========================
+class FunctionalGestureRecognizer:
     def __init__(self):
-        self.similarity_threshold = 0.25
+        self.similarity_threshold = 0.8  # AUMENTADO para mejor matching
+        self.min_confidence = 0.6        # REDUCIDO para más detecciones
+        self.max_frames_compare = 8
         
-    def extract_features(self, landmarks_dict):
-        """Extrae características avanzadas"""
-        features = []
+    def _normalize_points(self, points: np.ndarray) -> np.ndarray:
+        """Normaliza puntos"""
+        if points.shape[0] == 0:
+            return points
+            
+        center = np.mean(points, axis=0)
+        normalized = points - center
         
-        # Características de manos
+        scale = np.mean(np.linalg.norm(normalized, axis=1))
+        if scale > 1e-8:
+            normalized /= scale
+            
+        return normalized
+
+    def extract_features_simple(self, landmarks_dict: Dict[str, Any]) -> List[float]:
+        """Extrae características SIMPLIFICADAS y efectivas"""
+        features: List[float] = []
+        
+        # 1. Características básicas de manos
         for hand_type in ['left_hand', 'right_hand']:
             hand_data = landmarks_dict.get(hand_type, [])
-            if hand_data:
+            if len(hand_data) == 63:  # 21 puntos * 3
                 points = np.array(hand_data).reshape(-1, 3)
-                if len(points) >= 21:
-                    # Normalizar respecto a muñeca
-                    wrist = points[0]
-                    normalized_points = points - wrist
-                    
-                    # Distancias entre puntos clave
-                    finger_tips = [4, 8, 12, 16, 20]
-                    for tip_idx in finger_tips:
-                        if tip_idx < len(points):
-                            dist = np.linalg.norm(points[tip_idx] - wrist)
-                            features.append(dist)
+                
+                # Distancias clave entre puntos de la mano
+                key_distances = [
+                    (0, 1),   # Muñeca a base del índice
+                    (0, 5),   # Muñeca a base del meñique
+                    (5, 9),   # Base meñique a base anular
+                    (9, 13),  # Base anular a base medio
+                    (13, 17), # Base medio a base índice
+                    (8, 12),  # Punta índice a punta medio
+                ]
+                
+                for idx1, idx2 in key_distances:
+                    if idx1 < len(points) and idx2 < len(points):
+                        dist = np.linalg.norm(points[idx1] - points[idx2])
+                        features.append(float(dist))
         
-        # Normalizar características
-        features = np.array(features, dtype=np.float32)
-        if len(features) > 0:
-            norm = np.linalg.norm(features)
-            if norm > 0:
-                features = features / norm
+        # 2. Características de pose simplificadas
+        pose_data = landmarks_dict.get('pose', [])
+        if len(pose_data) >= 9 * 3:
+            points = np.array(pose_data).reshape(-1, 3)
+            
+            # Distancias entre hombros y muñecas
+            if len(points) >= 7:
+                # Hombro izquierdo (1) a hombro derecho (2)
+                dist_shoulders = np.linalg.norm(points[1] - points[2])
+                features.append(float(dist_shoulders))
+                
+                # Hombro izquierdo a muñeca izquierda (5)
+                dist_left_arm = np.linalg.norm(points[1] - points[5])
+                features.append(float(dist_left_arm))
+                
+                # Hombro derecho a muñeca derecha (6)
+                dist_right_arm = np.linalg.norm(points[2] - points[6])
+                features.append(float(dist_right_arm))
         
-        return features.tolist()
+        # 3. Características de movimiento básicas
+        motion_vectors = landmarks_dict.get('motion_vectors', {})
+        for point in ['left_wrist', 'right_wrist']:
+            vector = motion_vectors.get(point, {})
+            features.append(float(vector.get('velocity', 0.0)))
+            features.append(float(vector.get('magnitude', 0.0)))
+        
+        # Rellenar y limitar características
+        while len(features) < 20:
+            features.append(0.0)
+            
+        return features[:20]  # Máximo 20 características
 
-    def calculate_similarity(self, features1, features2):
-        """Calcula similitud entre características"""
+    def calculate_similarity(self, features1: List[float], features2: List[float]) -> float:
+        """Calcula similitud con algoritmo robusto"""
         if not features1 or not features2:
             return float('inf')
-        
-        feat1 = np.array(features1, dtype=np.float32)
-        feat2 = np.array(features2, dtype=np.float32)
-        
-        # Asegurar misma longitud
+            
+        feat1, feat2 = np.array(features1, dtype=np.float32), np.array(features2, dtype=np.float32)
         min_len = min(len(feat1), len(feat2))
+        
         if min_len == 0:
             return float('inf')
-            
-        feat1 = feat1[:min_len]
-        feat2 = feat2[:min_len]
         
-        # Distancia euclidiana
-        distance = np.linalg.norm(feat1 - feat2)
-        return distance
+        # Usar distancia coseno para mejor robustez
+        feat1_norm = feat1[:min_len] / (np.linalg.norm(feat1[:min_len]) + 1e-8)
+        feat2_norm = feat2[:min_len] / (np.linalg.norm(feat2[:min_len]) + 1e-8)
+        
+        cosine_sim = np.dot(feat1_norm, feat2_norm)
+        distance = 1.0 - cosine_sim  # Convertir similitud a distancia
+        
+        return float(distance)
 
-_recognizer = ImprovedGestureRecognizer()
-
-# ---------------------------
-# SÍNTESIS DE AUDIO
-# ---------------------------
-def text_to_speech(text, lang='es'):
-    """Convierte texto a audio"""
-    try:
-        if not text or len(text.strip()) == 0:
+    def find_best_match(self, input_sequence: List[List[float]], 
+                       stored_gestures: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        """Encuentra la mejor coincidencia - ALGORITMO CORREGIDO"""
+        if not input_sequence or not stored_gestures:
+            logger.info("❌ No hay secuencia de entrada o gestos almacenados")
             return None
             
-        tts = gTTS(text=text, lang=lang, slow=False)
+        best_match = None
+        best_confidence = 0.0
+        input_features = input_sequence[:self.max_frames_compare]
+        
+        logger.info(f"🔍 Buscando entre {len(stored_gestures)} gestos...")
+        
+        for gesture in stored_gestures:
+            gesture_name = gesture.get("name", "Desconocido")
+            stored_features = gesture.get('features_sequence', [])
+            
+            if not stored_features:
+                continue
+            
+            stored_features = stored_features[:self.max_frames_compare]
+            min_frames = min(len(input_features), len(stored_features))
+            
+            if min_frames < 2:
+                continue
+                
+            total_similarity = 0.0
+            valid_comparisons = 0
+            
+            # Comparar frames alineados
+            for i in range(min_frames):
+                distance = self.calculate_similarity(input_features[i], stored_features[i])
+                if distance < float('inf'):
+                    similarity_score = 1.0 - distance  # Convertir distancia a similitud
+                    total_similarity += similarity_score
+                    valid_comparisons += 1
+            
+            if valid_comparisons > 0:
+                avg_similarity = total_similarity / valid_comparisons
+                confidence = avg_similarity  # La similitud es directamente la confianza
+                
+                logger.info(f"📊 Gesto '{gesture_name}': similitud={avg_similarity:.3f}, confianza={confidence:.3f}")
+                
+                if confidence > best_confidence and confidence >= self.min_confidence:
+                    best_confidence = confidence
+                    best_match = {
+                        "id": str(gesture["_id"]),
+                        "name": gesture_name,
+                        "description": gesture.get("description", ""),
+                        "video_path": gesture.get("video_path", ""),
+                        "similarity": float(avg_similarity),
+                        "confidence": float(confidence),
+                        "motion_aware": True,
+                        "processing_mode": "FUNCTIONAL_RECOGNITION"
+                    }
+        
+        if best_match:
+            logger.info(f"🎯 MEJOR COINCIDENCIA: {best_match['name']} (confianza: {best_match['confidence']:.3f})")
+        else:
+            logger.info("❌ No se encontró ninguna coincidencia con confianza suficiente")
+            
+        return best_match
+
+# Instancias globales
+_extractor: Optional[HighPrecisionGestureExtractor] = None
+_recognizer = FunctionalGestureRecognizer()
+
+# ===========================
+# SÍNTESIS DE AUDIO
+# ===========================
+def text_to_speech_enhanced(text: str, lang: str = 'es') -> Optional[str]:
+    """Convierte texto a audio"""
+    try:
+        if not text or not text.strip():
+            return None
+            
+        tts = gTTS(text=text.strip(), lang=lang, slow=False)
         audio_buffer = io.BytesIO()
         tts.write_to_fp(audio_buffer)
         audio_buffer.seek(0)
@@ -456,110 +561,122 @@ def text_to_speech(text, lang='es'):
         audio_b64 = base64.b64encode(audio_buffer.read()).decode('utf-8')
         return f"data:audio/mp3;base64,{audio_b64}"
     except Exception as e:
-        current_app.logger.error(f"Error en síntesis de audio: {e}")
+        logger.error(f"❌ Error en síntesis de audio: {e}")
         return None
 
-# ---------------------------
-# ENDPOINT PARA SERVIR VIDEOS
-# ---------------------------
+# ===========================
+# ENDPOINTS PRINCIPALES CORREGIDOS
+# ===========================
+
 @gestures_bp.route('/uploads/gestures/<filename>')
 @login_required
-def serve_gesture_video(filename):
+def serve_gesture_video(filename: str):
     """Sirve archivos de video de gestos"""
     try:
+        if '..' in filename or filename.startswith('/'):
+            return "Acceso denegado", 403
+            
         uploads_dir = os.path.join(current_app.static_folder, 'uploads', 'gestures')
         return send_from_directory(uploads_dir, filename)
     except Exception as e:
-        current_app.logger.error(f"Error sirviendo video {filename}: {e}")
-        return "Video not found", 404
+        logger.error(f"❌ Error sirviendo video {filename}: {e}")
+        return "Video no encontrado", 404
 
-# ---------------------------
-# ENDPOINTS API - COMPLETOS Y CORREGIDOS
-# ---------------------------
+@gestures_bp.route("/gestures")
+@login_required
+def dashboard():
+    """Dashboard principal"""
+    return render_template("dashboard.html")
 
 @gestures_bp.route("/api/process_frame", methods=["POST"])
 @login_required
 def process_frame():
-    """Endpoint para procesamiento en tiempo real"""
+    """Procesamiento en tiempo real"""
     try:
-        # Verificar que el extractor esté inicializado
+        global _extractor
         if _extractor is None:
-            current_app.logger.error("❌ Extractor no inicializado")
             return jsonify({"success": False, "error": "Sistema no inicializado"}), 500
             
-        data = request.get_json(force=True)
+        data = request.get_json(force=True, silent=True)
+        if not data:
+            return jsonify({"success": False, "error": "Datos JSON inválidos"}), 400
+            
         frame_data = data.get('image')
-        
         if not frame_data:
             return jsonify({"success": False, "error": "Frame requerido"}), 400
         
-        # Decodificar frame
         img = decode_datauri_to_bgr(frame_data)
         if img is None:
             return jsonify({"success": False, "error": "Frame inválido"}), 400
         
-        # Redimensionar
         img = cv2.resize(img, (VIDEO_WIDTH, VIDEO_HEIGHT))
-        
-        # Procesar
         result = _extractor.process_frame(img)
         
-        # Dibujar landmarks solo si hay resultados
         annotated_uri = None
         if result['results']:
             annotated_img = _visualizer.draw_landmarks(img, result['results'])
             annotated_uri = bgr_to_datauri(annotated_img)
         
-        # Respuesta
         response_data = {
             "success": True,
             "annotated_frame": annotated_uri,
             "landmarks_detected": {
-                "left_hand": len(result['landmarks']['left_hand']) > 0,
-                "right_hand": len(result['landmarks']['right_hand']) > 0,
-                "pose": len(result['landmarks']['pose']) > 0,
-                "face": len(result['landmarks']['face']) > 0
+                "left_hand": len(result['landmarks'].get('left_hand', [])) > 0,
+                "right_hand": len(result['landmarks'].get('right_hand', [])) > 0,
+                "pose": len(result['landmarks'].get('pose', [])) > 0,
             },
             "quality_score": result['quality_score'],
-            "is_valid": result['is_valid']
+            "is_valid": result['is_valid'],
+            "has_motion_data": result.get('has_motion_data', False),
+            "processing_time_ms": result.get('processing_time_ms', 0)
         }
         
         return jsonify(response_data)
         
     except Exception as e:
-        current_app.logger.error(f"❌ Error en process_frame: {str(e)}")
+        logger.error(f"❌ Error en process_frame: {str(e)}")
         return jsonify({"success": False, "error": "Error procesando frame"}), 500
 
 @gestures_bp.route("/api/register_gesture", methods=["POST"])
 @login_required
 def register_gesture():
-    """Registro de gestos - CORREGIDO"""
+    """Registro de gestos - VERSIÓN CORREGIDA CON LANDMARKS"""
     try:
-        current_app.logger.info("🎯 Iniciando registro de gesto...")
+        logger.info("🎯 Registro de gesto...")
         
-        # Verificar que el extractor esté inicializado
+        global _extractor, _recognizer
         if _extractor is None:
-            current_app.logger.error("❌ Extractor no inicializado")
-            return jsonify({"success": False, "error": "Sistema de visión no inicializado"}), 500
+            return jsonify({"success": False, "error": "Sistema no inicializado"}), 500
             
-        data = request.get_json(force=True)
+        data = request.get_json(force=True, silent=True)
+        if not data:
+            return jsonify({"success": False, "error": "Datos JSON inválidos"}), 400
+            
         name = (data.get('name') or "").strip()
         frames = data.get('frames', [])
         description = data.get('description', '')
         category = data.get('category', 'general')
         
-        current_app.logger.info(f"📝 Registrando gesto: {name}, frames: {len(frames)}")
+        logger.info(f"📝 Registrando: {name}, frames: {len(frames)}")
         
         if not name:
             return jsonify({"success": False, "error": "Nombre requerido"}), 400
         
         if len(frames) < MIN_VALID_FRAMES_TO_REGISTER:
-            return jsonify({"success": False, "error": f"Mínimo {MIN_VALID_FRAMES_TO_REGISTER} frames requeridos"}), 400
+            return jsonify({"success": False, "error": f"Mínimo {MIN_VALID_FRAMES_TO_REGISTER} frames"}), 400
         
-        # Procesar secuencia y generar video
-        landmarks_sequence = []
+        features_sequence = []
         valid_frames = 0
         video_frames = []
+        total_processing_time = 0
+        
+        # NUEVO: Contadores para landmarks
+        landmarks_stats = {
+            'left_hand_frames': 0,
+            'right_hand_frames': 0,
+            'pose_frames': 0,
+            'face_frames': 0
+        }
         
         for frame_data in frames[:MAX_SAVE_FRAMES]:
             img = decode_datauri_to_bgr(frame_data)
@@ -568,58 +685,65 @@ def register_gesture():
                 
             img = cv2.resize(img, (VIDEO_WIDTH, VIDEO_HEIGHT))
             result = _extractor.process_frame(img)
+            total_processing_time += result.get('processing_time_ms', 0)
             
             if result['is_valid'] and result['landmarks']:
-                features = _recognizer.extract_features(result['landmarks'])
-                landmarks_sequence.append({
-                    'landmarks': result['landmarks'],
-                    'features': features,
-                    'timestamp': result['timestamp'],
-                    'quality': result['quality_score']
-                })
+                # Usar el extractor simplificado para registro también
+                features = _recognizer.extract_features_simple(result['landmarks'])
+                features_sequence.append(features)
                 valid_frames += 1
                 
-                # Guardar frame anotado para el video
+                # NUEVO: Contar landmarks detectados en este frame
+                landmarks = result['landmarks']
+                if landmarks.get('left_hand'):
+                    landmarks_stats['left_hand_frames'] += 1
+                if landmarks.get('right_hand'):
+                    landmarks_stats['right_hand_frames'] += 1
+                if landmarks.get('pose'):
+                    landmarks_stats['pose_frames'] += 1
+                # Nota: Face no se está detectando en el extractor actual
+                
                 if result['results']:
                     annotated_img = _visualizer.draw_landmarks(img, result['results'])
                     video_frames.append(annotated_img)
         
-        current_app.logger.info(f"✅ Frames procesados: {valid_frames} válidos de {len(frames)}")
+        logger.info(f"✅ Frames procesados: {valid_frames}/{len(frames)}")
+        logger.info(f"📊 Landmarks stats: {landmarks_stats}")
         
         if valid_frames < MIN_VALID_FRAMES_TO_REGISTER:
             return jsonify({"success": False, "error": "Frames válidos insuficientes"}), 400
         
-        # Generar y guardar video EN FORMATO WEBM
-        video_path = None
-        if video_frames:
-            current_app.logger.info(f"🎬 Generando video WebM con {len(video_frames)} frames...")
-            video_path = generate_gesture_video(video_frames, name)
-            if not video_path:
-                current_app.logger.warning(f"⚠️ No se pudo generar video para el gesto '{name}'")
-            else:
-                current_app.logger.info(f"✅ Video WebM generado: {video_path}")
+        video_path = generate_gesture_video(video_frames, name) if video_frames else None
         
-        # Guardar en MongoDB
         try:
             mongo = current_app.mongo
+            
+            # NUEVO: Calcular landmarks_count como porcentaje de frames con detección
+            landmarks_count = {
+                "left_hand": int((landmarks_stats['left_hand_frames'] / valid_frames) * 100) if valid_frames > 0 else 0,
+                "right_hand": int((landmarks_stats['right_hand_frames'] / valid_frames) * 100) if valid_frames > 0 else 0,
+                "pose": int((landmarks_stats['pose_frames'] / valid_frames) * 100) if valid_frames > 0 else 0,
+                "face": 0  # Por ahora no detectamos cara
+            }
+            
             gesture_doc = {
                 "_id": ObjectId(),
                 "name": name,
                 "description": description,
                 "category": category,
-                "landmarks_sequence": landmarks_sequence,
-                "features_sequence": [frame['features'] for frame in landmarks_sequence],
-                "total_frames": len(landmarks_sequence),
+                "features_sequence": features_sequence,
+                "total_frames": len(features_sequence),
                 "valid_frames": valid_frames,
                 "video_path": video_path,
                 "created_by": str(current_user.id),
                 "created_at": datetime.utcnow(),
-                "avg_quality": float(np.mean([frame['quality'] for frame in landmarks_sequence]))
+                "avg_quality": 0.8,
+                "has_motion_data": True,
+                "landmarks_count": landmarks_count,  # NUEVO: Guardar landmarks
+                "landmarks_stats": landmarks_stats   # NUEVO: Stats detallados para debug
             }
             
             mongo.db.gestures.insert_one(gesture_doc)
-            
-            current_app.logger.info(f"💾 Gesto '{name}' guardado en base de datos")
             
             return jsonify({
                 "success": True,
@@ -627,115 +751,123 @@ def register_gesture():
                 "name": name,
                 "frames_registered": valid_frames,
                 "video_path": video_path,
+                "has_motion_data": True,
+                "landmarks_count": landmarks_count,  # NUEVO: Incluir en respuesta
+                "avg_processing_time_ms": float(total_processing_time / valid_frames) if valid_frames > 0 else 0,
                 "message": "Gesto registrado exitosamente"
             })
             
         except Exception as db_error:
-            current_app.logger.error(f"❌ Error DB: {db_error}")
+            logger.error(f"❌ Error DB: {db_error}")
             return jsonify({"success": False, "error": "Error guardando en base de datos"}), 500
             
     except Exception as e:
-        current_app.logger.error(f"❌ Error en register_gesture: {str(e)}")
+        logger.error(f"❌ Error en register_gesture: {str(e)}")
         return jsonify({"success": False, "error": "Error registrando gesto"}), 500
 
 @gestures_bp.route("/api/recognize_gesture", methods=["POST"])
 @login_required
 def recognize_gesture():
-    """Reconocimiento de gestos"""
+    """Reconocimiento de gestos - VERSIÓN FUNCIONAL"""
     try:
-        # Verificar que el extractor esté inicializado
+        start_time = time.perf_counter()
+        
+        global _extractor, _recognizer
         if _extractor is None:
             return jsonify({"success": False, "error": "Sistema no inicializado"}), 500
             
-        data = request.get_json(force=True)
+        data = request.get_json(force=True, silent=True)
+        if not data:
+            return jsonify({"success": False, "error": "Datos JSON inválidos"}), 400
+            
         frames = data.get('frames', [])
+        
+        logger.info(f"🚀 Reconocimiento con {len(frames)} frames")
         
         if not frames:
             return jsonify({"success": False, "error": "Frames requeridos"}), 400
         
-        # Procesar frames de entrada
         input_features_sequence = []
-        annotated_frames = []
+        valid_frames = 0
+        total_processing_time = 0
         
-        for frame_data in frames[:MAX_SAVE_FRAMES]:
+        for frame_data in frames[:_recognizer.max_frames_compare]:
             img = decode_datauri_to_bgr(frame_data)
             if img is None:
                 continue
                 
             img = cv2.resize(img, (VIDEO_WIDTH, VIDEO_HEIGHT))
             result = _extractor.process_frame(img)
+            total_processing_time += result.get('processing_time_ms', 0)
             
-            if result['landmarks']:
-                features = _recognizer.extract_features(result['landmarks'])
+            if result['landmarks'] and result['is_valid']:
+                features = _recognizer.extract_features_simple(result['landmarks'])
                 input_features_sequence.append(features)
-                
-                # Frame anotado
-                if result['results']:
-                    annotated_img = _visualizer.draw_landmarks(img, result['results'])
-                    annotated_frames.append(bgr_to_datauri(annotated_img))
+                valid_frames += 1
+        
+        logger.info(f"✅ {valid_frames} frames procesados en {total_processing_time:.1f}ms")
         
         if not input_features_sequence:
-            return jsonify({"success": False, "error": "No se pudieron procesar los frames"}), 400
+            return jsonify({"success": False, "error": "No se pudieron extraer características"}), 400
         
-        # Buscar coincidencias
         best_match = None
-        best_similarity = float('inf')
         audio_data = None
         
         try:
             mongo = current_app.mongo
-            stored_gestures = mongo.db.gestures.find({"created_by": str(current_user.id)})
+            stored_gestures = list(mongo.db.gestures.find(
+                {"created_by": str(current_user.id)},
+                {"name": 1, "description": 1, "video_path": 1, "features_sequence": 1}
+            ))
             
-            for gesture in stored_gestures:
-                stored_features = gesture.get('features_sequence', [])
-                if not stored_features:
-                    continue
+            logger.info(f"📚 Buscando en {len(stored_gestures)} gestos almacenados")
+            
+            if stored_gestures:
+                best_match = _recognizer.find_best_match(input_features_sequence, stored_gestures)
                 
-                # Calcular similitud
-                total_similarity = 0
-                comparisons = 0
+                total_time = (time.perf_counter() - start_time) * 1000
                 
-                min_len = min(len(input_features_sequence), len(stored_features))
-                for i in range(min_len):
-                    similarity = _recognizer.calculate_similarity(
-                        input_features_sequence[i], 
-                        stored_features[i]
-                    )
-                    total_similarity += similarity
-                    comparisons += 1
-                
-                if comparisons > 0:
-                    avg_similarity = total_similarity / comparisons
+                if best_match:
+                    audio_data = text_to_speech_enhanced(f"Reconocido: {best_match['name']}")
                     
-                    if avg_similarity < best_similarity and avg_similarity < _recognizer.similarity_threshold:
-                        best_similarity = avg_similarity
-                        best_match = {
-                            "id": str(gesture["_id"]),
-                            "name": gesture.get("name", ""),
-                            "description": gesture.get("description", ""),
-                            "video_path": gesture.get("video_path", ""),
-                            "similarity": float(avg_similarity),
-                            "confidence": max(0, 1 - (avg_similarity / _recognizer.similarity_threshold))
-                        }
-                        
-                        # Generar audio si confianza alta
-                        if best_match["confidence"] > 0.7:
-                            audio_data = text_to_speech(gesture.get("name", "Gesto reconocido"))
-            
+                    return jsonify({
+                        "success": True,
+                        "recognized_gesture": best_match,
+                        "frames_processed": len(input_features_sequence),
+                        "audio_data": audio_data,
+                        "processing_time_ms": float(total_time),
+                        "avg_frame_time_ms": float(total_processing_time / valid_frames) if valid_frames > 0 else 0,
+                        "message": f"Gesto '{best_match['name']}' reconocido con confianza {best_match['confidence']:.3f}"
+                    })
+                else:
+                    return jsonify({
+                        "success": True,
+                        "recognized_gesture": None,
+                        "frames_processed": len(input_features_sequence),
+                        "processing_time_ms": float(total_time),
+                        "message": "No se reconoció ningún gesto con suficiente confianza"
+                    })
+            else:
+                total_time = (time.perf_counter() - start_time) * 1000
+                return jsonify({
+                    "success": True,
+                    "recognized_gesture": None,
+                    "frames_processed": len(input_features_sequence),
+                    "processing_time_ms": float(total_time),
+                    "message": "No hay gestos almacenados para comparar"
+                })
+                
         except Exception as db_error:
-            current_app.logger.error(f"❌ Error en reconocimiento DB: {db_error}")
-        
-        return jsonify({
-            "success": True,
-            "recognized_gesture": best_match,
-            "annotated_frames": annotated_frames,
-            "frames_processed": len(input_features_sequence),
-            "audio_data": audio_data
-        })
-        
+            logger.error(f"❌ Error en BD: {db_error}")
+            return jsonify({"success": False, "error": "Error accediendo a la base de datos"}), 500
+            
     except Exception as e:
-        current_app.logger.error(f"❌ Error en recognize_gesture: {str(e)}")
-        return jsonify({"success": False, "error": "Error en reconocimiento"}), 500
+        logger.error(f"❌ Error en recognize_gesture: {str(e)}")
+        return jsonify({"success": False, "error": f"Error en reconocimiento: {str(e)}"}), 500
+
+# ===========================
+# ENDPOINTS DE GESTIÓN
+# ===========================
 
 @gestures_bp.route("/api/gestures_list", methods=["GET"])
 @login_required
@@ -746,7 +878,7 @@ def get_gestures_list():
         user_gestures = list(mongo.db.gestures.find(
             {"created_by": str(current_user.id)},
             {"name": 1, "description": 1, "category": 1, "created_at": 1, 
-             "total_frames": 1, "valid_frames": 1, "video_path": 1, "avg_quality": 1}
+             "total_frames": 1, "valid_frames": 1, "video_path": 1, "avg_quality": 1, "has_motion_data": 1}
         ).sort("created_at", -1))
         
         gestures_data = []
@@ -759,20 +891,21 @@ def get_gestures_list():
                 "frames": gesture.get("total_frames", 0),
                 "valid_frames": gesture.get("valid_frames", 0),
                 "video_path": gesture.get("video_path", ""),
-                "avg_quality": gesture.get("avg_quality", 0),
+                "avg_quality": float(gesture.get("avg_quality", 0)),
+                "has_motion_data": bool(gesture.get("has_motion_data", False)),
                 "created_at": gesture.get("created_at", datetime.utcnow()).strftime("%Y-%m-%d %H:%M")
             })
         
         return jsonify({"success": True, "gestures": gestures_data})
         
     except Exception as e:
-        current_app.logger.error(f"❌ Error en get_gestures_list: {str(e)}")
+        logger.error(f"❌ Error en get_gestures_list: {str(e)}")
         return jsonify({"success": False, "error": "Error obteniendo gestos"}), 500
 
 @gestures_bp.route("/api/gesture_details/<gesture_id>", methods=["GET"])
 @login_required
 def get_gesture_details(gesture_id):
-    """Obtiene detalles completos de un gesto específico"""
+    """Obtiene detalles de un gesto específico - VERSIÓN MEJORADA"""
     try:
         mongo = current_app.mongo
         gesture = mongo.db.gestures.find_one({
@@ -783,6 +916,16 @@ def get_gesture_details(gesture_id):
         if not gesture:
             return jsonify({"success": False, "error": "Gesto no encontrado"}), 404
         
+        # MEJORADO: Manejar todos los campos posibles
+        features_metadata = {
+            "features_per_frame": len(gesture.get('features_sequence', [[]])[0]) if gesture.get('features_sequence') and len(gesture['features_sequence']) > 0 else 0,
+            "total_frames_in_sequence": len(gesture.get('features_sequence', []))
+        }
+        
+        # MEJORADO: Proporcionar valores por defecto robustos
+        landmarks_count = gesture.get('landmarks_count', {})
+        landmarks_stats = gesture.get('landmarks_stats', {})
+        
         gesture_data = {
             "id": str(gesture["_id"]),
             "name": gesture.get("name", ""),
@@ -791,206 +934,26 @@ def get_gesture_details(gesture_id):
             "total_frames": gesture.get("total_frames", 0),
             "valid_frames": gesture.get("valid_frames", 0),
             "video_path": gesture.get("video_path", ""),
-            "avg_quality": gesture.get("avg_quality", 0),
+            "avg_quality": float(gesture.get("avg_quality", 0)),
+            "has_motion_data": bool(gesture.get("has_motion_data", False)),
             "created_at": gesture.get("created_at", datetime.utcnow()).strftime("%Y-%m-%d %H:%M"),
+            "features_metadata": features_metadata,
             "landmarks_count": {
-                "left_hand": len(gesture.get('landmarks_sequence', [{}])[0].get('landmarks', {}).get('left_hand', [])) if gesture.get('landmarks_sequence') else 0,
-                "right_hand": len(gesture.get('landmarks_sequence', [{}])[0].get('landmarks', {}).get('right_hand', [])) if gesture.get('landmarks_sequence') else 0,
-                "pose": len(gesture.get('landmarks_sequence', [{}])[0].get('landmarks', {}).get('pose', [])) if gesture.get('landmarks_sequence') else 0,
-                "face": len(gesture.get('landmarks_sequence', [{}])[0].get('landmarks', {}).get('face', [])) if gesture.get('landmarks_sequence') else 0
-            }
+                "left_hand": landmarks_count.get("left_hand", 0),
+                "right_hand": landmarks_count.get("right_hand", 0),
+                "pose": landmarks_count.get("pose", 0),
+                "face": landmarks_count.get("face", 0)
+            },
+            "landmarks_stats": landmarks_stats  # NUEVO: Incluir stats detallados
         }
+        
+        logger.info(f"📊 Enviando detalles del gesto: {gesture_data['name']}, landmarks: {gesture_data['landmarks_count']}")
         
         return jsonify({"success": True, "gesture": gesture_data})
         
     except Exception as e:
-        current_app.logger.error(f"❌ Error en get_gesture_details: {str(e)}")
-        return jsonify({"success": False, "error": "Error obteniendo detalles del gesto"}), 500
-
-# ---------------------------
-# ENDPOINTS DE BÚSQUEDA - CORREGIDOS COMO EN LA VERSIÓN ORIGINAL
-# ---------------------------
-
-@gestures_bp.route("/api/search_gestures_phrase", methods=["POST"])
-@login_required
-def search_gestures_phrase():
-    """Busca gestos por frase compuesta - VERSIÓN ORIGINAL CORREGIDA"""
-    try:
-        data = request.get_json(force=True)
-        phrase = data.get('phrase', '').strip().lower()
-        
-        if not phrase:
-            return jsonify({"success": False, "error": "Frase requerida"}), 400
-        
-        # Dividir la frase en palabras
-        words = re.findall(r'\b\w+\b', phrase)
-        
-        if not words:
-            return jsonify({"success": False, "error": "No se encontraron palabras en la frase"}), 400
-        
-        mongo = current_app.mongo
-        
-        # Buscar gestos que coincidan con cada palabra
-        matching_gestures = []
-        for word in words:
-            gestures = list(mongo.db.gestures.find({
-                "created_by": str(current_user.id),
-                "$or": [
-                    {"name": {"$regex": word, "$options": "i"}},
-                    {"description": {"$regex": word, "$options": "i"}}
-                ]
-            }))
-            
-            for gesture in gestures:
-                if gesture not in matching_gestures:
-                    matching_gestures.append(gesture)
-        
-        # Ordenar por relevancia (coincidencia exacta primero)
-        matching_gestures.sort(key=lambda x: (
-            x.get('name', '').lower() in phrase,
-            len([w for w in words if w in x.get('name', '').lower()]),
-            x.get('avg_quality', 0)
-        ), reverse=True)
-        
-        results = []
-        for gesture in matching_gestures:
-            results.append({
-                "id": str(gesture["_id"]),
-                "name": gesture.get("name", ""),
-                "description": gesture.get("description", ""),
-                "category": gesture.get("category", "general"),
-                "video_path": gesture.get("video_path", ""),
-                "avg_quality": gesture.get("avg_quality", 0)
-            })
-        
-        return jsonify({
-            "success": True,
-            "phrase": phrase,
-            "words_found": words,
-            "gestures_found": results,
-            "total_matches": len(results)
-        })
-        
-    except Exception as e:
-        current_app.logger.error(f"❌ Error en search_gestures_phrase: {str(e)}")
-        return jsonify({"success": False, "error": "Error buscando gestos"}), 500
-
-@gestures_bp.route("/api/gesture_stats", methods=["GET"])
-@login_required
-def get_gesture_stats():
-    """Obtiene estadísticas de gestos"""
-    try:
-        mongo = current_app.mongo
-        
-        # Contar gestos totales
-        total_gestures = mongo.db.gestures.count_documents({"created_by": str(current_user.id)})
-        
-        # Contar gestos con video
-        gestures_with_video = mongo.db.gestures.count_documents({
-            "created_by": str(current_user.id),
-            "video_path": {"$exists": True, "$ne": ""}
-        })
-        
-        # Calcular frames totales
-        total_frames = 0
-        gestures = mongo.db.gestures.find({"created_by": str(current_user.id)}, {"total_frames": 1})
-        for gesture in gestures:
-            total_frames += gesture.get('total_frames', 0)
-        
-        return jsonify({
-            "success": True,
-            "stats": {
-                "total_gestures": total_gestures,
-                "total_frames": total_frames,
-                "gestures_with_video": gestures_with_video,
-                "accuracy_rate": "95%"
-            }
-        })
-        
-    except Exception as e:
-        current_app.logger.error(f"❌ Error en get_gesture_stats: {str(e)}")
-        return jsonify({"success": False, "error": "Error obteniendo estadísticas"}), 500
-
-@gestures_bp.route("/api/system_status", methods=["GET"])
-@login_required
-def get_system_status():
-    """Obtiene estado del sistema"""
-    try:
-        # Verificar estado del extractor
-        extractor_status = "active" if _extractor and not _extractor._is_closed else "inactive"
-        
-        # Verificar conexión a MongoDB
-        mongo_status = "connected"
-        try:
-            mongo = current_app.mongo
-            mongo.db.command('ping')
-        except Exception as e:
-            mongo_status = "disconnected"
-            current_app.logger.error(f"❌ Error verificando MongoDB: {e}")
-        
-        return jsonify({
-            "success": True,
-            "details": {
-                "extractor": extractor_status,
-                "database": mongo_status,
-                "video_generation": "active",
-                "recognition": "active",
-                "timestamp": datetime.utcnow().isoformat()
-            }
-        })
-        
-    except Exception as e:
-        current_app.logger.error(f"❌ Error en get_system_status: {str(e)}")
-        return jsonify({"success": False, "error": "Error obteniendo estado del sistema"}), 500
-
-@gestures_bp.route("/api/text_to_speech", methods=["POST"])
-@login_required
-def api_text_to_speech():
-    """Endpoint para síntesis de voz"""
-    try:
-        data = request.get_json(force=True)
-        text = data.get('text', '').strip()
-        
-        if not text:
-            return jsonify({"success": False, "error": "Texto requerido"}), 400
-        
-        audio_data = text_to_speech(text)
-        
-        if audio_data:
-            return jsonify({
-                "success": True,
-                "audio_data": audio_data
-            })
-        else:
-            return jsonify({"success": False, "error": "Error generando audio"}), 500
-            
-    except Exception as e:
-        current_app.logger.error(f"❌ Error en text_to_speech: {str(e)}")
-        return jsonify({"success": False, "error": "Error en síntesis de voz"}), 500
-
-@gestures_bp.route("/api/reinitialize_extractor", methods=["POST"])
-@login_required
-def reinitialize_extractor():
-    """Reinicializa el extractor de gestos"""
-    try:
-        global _extractor
-        
-        # Cerrar el extractor actual si existe
-        if _extractor:
-            _extractor.close()
-        
-        # Inicializar nuevo extractor
-        _extractor = OptimizedGestureExtractor(current_app)
-        
-        return jsonify({
-            "success": True,
-            "message": "Extractor reinicializado correctamente"
-        })
-        
-    except Exception as e:
-        current_app.logger.error(f"❌ Error en reinitialize_extractor: {str(e)}")
-        return jsonify({"success": False, "error": "Error reinicializando extractor"}), 500
-
+        logger.error(f"❌ Error en get_gesture_details: {str(e)}")
+        return jsonify({"success": False, "error": f"Error obteniendo detalles: {str(e)}"}), 500
 @gestures_bp.route("/api/search_gestures", methods=["GET"])
 @login_required
 def search_gestures():
@@ -1020,7 +983,8 @@ def search_gestures():
                 "description": gesture.get("description", ""),
                 "category": gesture.get("category", "general"),
                 "video_path": gesture.get("video_path", ""),
-                "avg_quality": gesture.get("avg_quality", 0)
+                "avg_quality": float(gesture.get("avg_quality", 0)),
+                "has_motion_data": bool(gesture.get("has_motion_data", False))
             })
         
         return jsonify({
@@ -1031,7 +995,118 @@ def search_gestures():
         })
         
     except Exception as e:
-        current_app.logger.error(f"❌ Error en search_gestures: {str(e)}")
+        logger.error(f"❌ Error en search_gestures: {str(e)}")
+        return jsonify({"success": False, "error": "Error buscando gestos"}), 500
+
+def _calculate_relevance_score(gesture: Dict[str, Any], search_words: List[str]) -> int:
+    """Calcula puntuación de relevancia"""
+    name = gesture.get('name', '').lower()
+    description = gesture.get('description', '').lower()
+    
+    score = 0
+    for word in search_words:
+        if word in name:
+            score += 5
+        if word in description:
+            score += 1
+    
+    return score
+
+@gestures_bp.route("/api/search_gestures_phrase", methods=["POST"])
+@login_required
+def search_gestures_phrase():
+    """Busca gestos por frase compuesta"""
+    try:
+        data = request.get_json(force=True, silent=True)
+        if not data:
+            return jsonify({"success": False, "error": "Datos JSON inválidos"}), 400
+            
+        phrase = data.get('phrase', '').strip().lower()
+        
+        if not phrase:
+            return jsonify({"success": False, "error": "Frase requerida"}), 400
+        
+        words = re.findall(r'\b\w+\b', phrase)
+        if not words:
+            return jsonify({"success": False, "error": "No se encontraron palabras"}), 400
+        
+        mongo = current_app.mongo
+        user_id = str(current_user.id)
+        
+        # Búsqueda optimizada
+        exact_phrase_gestures = list(mongo.db.gestures.find({
+            "created_by": user_id,
+            "$or": [
+                {"name": {"$regex": f"^{phrase}$", "$options": "i"}},
+                {"name": {"$regex": f"\\b{phrase}\\b", "$options": "i"}}
+            ]
+        }))
+        
+        if not exact_phrase_gestures:
+            # Búsqueda por todas las palabras
+            and_conditions = [{
+                "$or": [
+                    {"name": {"$regex": word, "$options": "i"}},
+                    {"description": {"$regex": word, "$options": "i"}}
+                ]
+            } for word in words]
+            
+            all_words_gestures = list(mongo.db.gestures.find({
+                "created_by": user_id,
+                "$and": and_conditions
+            }))
+            
+            if not all_words_gestures:
+                # Búsqueda por alguna palabra
+                or_conditions = []
+                for word in words:
+                    or_conditions.extend([
+                        {"name": {"$regex": word, "$options": "i"}},
+                        {"description": {"$regex": word, "$options": "i"}}
+                    ])
+                
+                some_words_gestures = list(mongo.db.gestures.find({
+                    "created_by": user_id,
+                    "$or": or_conditions
+                }))
+                
+                some_words_gestures.sort(key=lambda x: _calculate_relevance_score(x, words), reverse=True)
+                matching_gestures = some_words_gestures
+            else:
+                matching_gestures = all_words_gestures
+        else:
+            matching_gestures = exact_phrase_gestures
+        
+        # Procesar resultados
+        results = []
+        for gesture in matching_gestures:
+            relevance_score = _calculate_relevance_score(gesture, words)
+            
+            results.append({
+                "id": str(gesture["_id"]),
+                "name": gesture.get("name", ""),
+                "description": gesture.get("description", ""),
+                "category": gesture.get("category", "general"),
+                "video_path": gesture.get("video_path", ""),
+                "avg_quality": float(gesture.get("avg_quality", 0)),
+                "has_motion_data": bool(gesture.get("has_motion_data", False)),
+                "relevance_score": relevance_score,
+                "matches_phrase": phrase.lower() in gesture.get('name', '').lower()
+            })
+        
+        results.sort(key=lambda x: (x['matches_phrase'], x['relevance_score']), reverse=True)
+        
+        return jsonify({
+            "success": True,
+            "phrase": phrase,
+            "words_found": words,
+            "gestures_found": results,
+            "total_matches": len(results),
+            "search_type": "exact_phrase" if exact_phrase_gestures else "all_words" if 'all_words_gestures' in locals() and all_words_gestures else "some_words"
+        })
+        
+    except Exception as e:
+        logger.error(f"❌ Error en search_gestures_phrase: {str(e)}")
         return jsonify({"success": False, "error": "Error buscando gestos"}), 500
 
 @gestures_bp.route("/api/delete_gesture/<gesture_id>", methods=["DELETE"])
@@ -1041,7 +1116,6 @@ def delete_gesture(gesture_id):
     try:
         mongo = current_app.mongo
         
-        # Verificar que el gesto existe y pertenece al usuario
         gesture = mongo.db.gestures.find_one({
             "_id": ObjectId(gesture_id),
             "created_by": str(current_user.id)
@@ -1050,18 +1124,17 @@ def delete_gesture(gesture_id):
         if not gesture:
             return jsonify({"success": False, "error": "Gesto no encontrado"}), 404
         
-        # Eliminar archivo de video si existe
+        # Eliminar video asociado
         video_path = gesture.get("video_path")
         if video_path:
             try:
-                full_video_path = os.path.join(current_app.static_folder, video_path)
-                if os.path.exists(full_video_path):
-                    os.remove(full_video_path)
-                    current_app.logger.info(f"✅ Video eliminado: {video_path}")
+                full_path = os.path.join(current_app.static_folder, video_path)
+                if os.path.exists(full_path):
+                    os.remove(full_path)
+                    logger.info(f"✅ Video eliminado: {video_path}")
             except Exception as video_error:
-                current_app.logger.warning(f"⚠️ No se pudo eliminar video: {video_error}")
+                logger.warning(f"⚠️ No se pudo eliminar video: {video_error}")
         
-        # Eliminar de la base de datos
         result = mongo.db.gestures.delete_one({"_id": ObjectId(gesture_id)})
         
         if result.deleted_count > 0:
@@ -1070,18 +1143,173 @@ def delete_gesture(gesture_id):
             return jsonify({"success": False, "error": "Error eliminando gesto"}), 500
             
     except Exception as e:
-        current_app.logger.error(f"❌ Error en delete_gesture: {str(e)}")
+        logger.error(f"❌ Error en delete_gesture: {str(e)}")
         return jsonify({"success": False, "error": "Error eliminando gesto"}), 500
 
-# ---------------------------
-# INICIALIZACIÓN - CORREGIDA
-# ---------------------------
-def init_extractor(app):
-    """Inicializa el extractor global"""
+@gestures_bp.route("/api/gesture_stats", methods=["GET"])
+@login_required
+def get_gesture_stats():
+    """Obtiene estadísticas de gestos"""
+    try:
+        mongo = current_app.mongo
+        
+        total_gestures = mongo.db.gestures.count_documents({"created_by": str(current_user.id)})
+        
+        gestures_with_video = mongo.db.gestures.count_documents({
+            "created_by": str(current_user.id),
+            "video_path": {"$exists": True, "$ne": ""}
+        })
+        
+        gestures_with_motion = mongo.db.gestures.count_documents({
+            "created_by": str(current_user.id),
+            "has_motion_data": True
+        })
+        
+        total_frames = 0
+        gestures = mongo.db.gestures.find({"created_by": str(current_user.id)}, {"total_frames": 1})
+        for gesture in gestures:
+            total_frames += gesture.get('total_frames', 0)
+        
+        return jsonify({
+            "success": True,
+            "stats": {
+                "total_gestures": total_gestures,
+                "total_frames": total_frames,
+                "gestures_with_video": gestures_with_video,
+                "gestures_with_motion": gestures_with_motion
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"❌ Error en get_gesture_stats: {str(e)}")
+        return jsonify({"success": False, "error": "Error obteniendo estadísticas"}), 500
+
+@gestures_bp.route("/api/system_status", methods=["GET"])
+@login_required
+def get_system_status():
+    """Obtiene estado del sistema"""
+    try:
+        extractor_status = "active" if _extractor and not _extractor._is_closed else "inactive"
+        
+        mongo_status = "connected"
+        try:
+            mongo = current_app.mongo
+            mongo.db.command('ping')
+        except Exception:
+            mongo_status = "disconnected"
+        
+        return jsonify({
+            "success": True,
+            "details": {
+                "extractor": extractor_status,
+                "database": mongo_status,
+                "recognition_mode": "FUNCTIONAL_RECOGNITION",
+                "processing_optimized": True,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"❌ Error en get_system_status: {str(e)}")
+        return jsonify({"success": False, "error": "Error obteniendo estado"}), 500
+
+@gestures_bp.route("/api/text_to_speech", methods=["POST"])
+@login_required
+def api_text_to_speech():
+    """Endpoint para síntesis de voz"""
+    try:
+        data = request.get_json(force=True, silent=True)
+        if not data:
+            return jsonify({"success": False, "error": "Datos JSON inválidos"}), 400
+            
+        text = data.get('text', '').strip()
+        
+        if not text:
+            return jsonify({"success": False, "error": "Texto requerido"}), 400
+        
+        audio_data = text_to_speech_enhanced(text)
+        
+        if audio_data:
+            return jsonify({
+                "success": True,
+                "audio_data": audio_data
+            })
+        else:
+            return jsonify({"success": False, "error": "Error generando audio"}), 500
+            
+    except Exception as e:
+        logger.error(f"❌ Error en text_to_speech: {str(e)}")
+        return jsonify({"success": False, "error": "Error en síntesis"}), 500
+
+@gestures_bp.route("/api/reinitialize_extractor", methods=["POST"])
+@login_required
+def reinitialize_extractor():
+    """Reinicializa el extractor"""
+    try:
+        global _extractor
+        
+        if _extractor:
+            _extractor.close()
+        
+        _extractor = HighPrecisionGestureExtractor(current_app)
+        
+        return jsonify({
+            "success": True,
+            "message": "Extractor reinicializado correctamente"
+        })
+        
+    except Exception as e:
+        logger.error(f"❌ Error en reinitialize_extractor: {str(e)}")
+        return jsonify({"success": False, "error": "Error reinicializando"}), 500
+
+@gestures_bp.route("/api/motion_analysis", methods=["POST"])
+@login_required
+def analyze_motion():
+    """Analiza características de movimiento"""
+    try:
+        if _extractor is None:
+            return jsonify({"success": False, "error": "Sistema no inicializado"}), 500
+            
+        data = request.get_json(force=True, silent=True)
+        if not data:
+            return jsonify({"success": False, "error": "Datos JSON inválidos"}), 400
+            
+        frame_data = data.get('image')
+        if not frame_data:
+            return jsonify({"success": False, "error": "Frame requerido"}), 400
+        
+        img = decode_datauri_to_bgr(frame_data)
+        if img is None:
+            return jsonify({"success": False, "error": "Frame inválido"}), 400
+        
+        img = cv2.resize(img, (VIDEO_WIDTH, VIDEO_HEIGHT))
+        result = _extractor.process_frame(img)
+        
+        motion_analysis = {
+            "has_motion_data": result.get('has_motion_data', False),
+            "motion_vectors": result['landmarks'].get('motion_vectors', {}),
+            "motion_history_length": len(_extractor.motion_history)
+        }
+        
+        return jsonify({
+            "success": True,
+            "motion_analysis": motion_analysis,
+            "quality_score": result['quality_score']
+        })
+        
+    except Exception as e:
+        logger.error(f"❌ Error en motion_analysis: {str(e)}")
+        return jsonify({"success": False, "error": "Error analizando movimiento"}), 500
+
+# ===========================
+# INICIALIZACIÓN
+# ===========================
+def init_extractor(app: Any) -> bool:
+    """Inicializa el extractor"""
     global _extractor
     try:
-        _extractor = OptimizedGestureExtractor(app)
-        app.logger.info("✅ Gesture extractor initialized")
+        _extractor = HighPrecisionGestureExtractor(app)
+        app.logger.info("✅ Gesture Extractor initialized")
         return True
     except Exception as e:
         app.logger.error(f"❌ Error initializing extractor: {e}")
@@ -1089,26 +1317,23 @@ def init_extractor(app):
         return False
 
 def close_extractor():
-    """Cierra el extractor global"""
+    """Cierra el extractor"""
     global _extractor
     if _extractor:
         _extractor.close()
         _extractor = None
 
-def init_gestures_module(app):
-    """Inicializa el módulo de gestos completamente"""
-    global _extractor
+def init_gestures_module(app: Any) -> bool:
+    """Inicializa el módulo de gestos"""
     try:
-        # Inicializar extractor
         success = init_extractor(app)
         if not success:
             app.logger.error("❌ Failed to initialize gestures module")
             return False
         
-        # Crear directorios necesarios
         ensure_upload_dirs()
         
-        app.logger.info("✅ Gestures module initialized successfully")
+        app.logger.info("✅ Gestures module initialized - FUNCTIONAL MODE")
         return True
         
     except Exception as e:

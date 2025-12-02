@@ -25,7 +25,7 @@ let isPlayingQueue = false;
 const CONFIG = {
     MAX_FRAMES: 60,
     MIN_FRAMES: 10,
-    RECOGNITION_INTERVAL: 2000,
+    RECOGNITION_INTERVAL: 800,
     FRAME_RATE: 15,
     SIMILARITY_THRESHOLD: 0.25
 };
@@ -1504,15 +1504,20 @@ async function loadGesturesList() {
 }
 
 async function showGestureDetails(gestureId) {
+    console.log('🔍 Cargando detalles del gesto:', gestureId);
+    
     const loadingModal = ModalManager.showLoading('Cargando detalles...');
     
     try {
         const result = await GesturesAPI.getGestureDetails(gestureId);
         ModalManager.hideLoading();
         
-        if (result.success) {
+        console.log('📋 Respuesta de detalles:', result); // DEBUG
+        
+        if (result.success && result.gesture) {
             const gesture = result.gesture;
             
+            // Crear o reutilizar modal
             let detailsModal = document.getElementById('gestureDetailsModal');
             if (!detailsModal) {
                 detailsModal = document.createElement('div');
@@ -1526,6 +1531,7 @@ async function showGestureDetails(gestureId) {
                                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                             </div>
                             <div class="modal-body" id="gestureDetailsContent">
+                                <!-- Contenido dinámico -->
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
@@ -1541,96 +1547,135 @@ async function showGestureDetails(gestureId) {
                 document.body.appendChild(detailsModal);
             }
             
+            // Actualizar contenido - VERSIÓN CORREGIDA
             const content = document.getElementById('gestureDetailsContent');
             if (content) {
-                content.innerHTML = `
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6>Información General</h6>
-                            <table class="table table-dark table-sm">
-                                <tr>
-                                    <td><strong>Nombre:</strong></td>
-                                    <td>${gesture.name}</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Descripción:</strong></td>
-                                    <td>${gesture.description || 'Sin descripción'}</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Categoría:</strong></td>
-                                    <td><span class="badge bg-primary">${gesture.category}</span></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Fecha:</strong></td>
-                                    <td>${gesture.created_at}</td>
-                                </tr>
-                            </table>
+                // CORREGIDO: Manejar landmarks_count que puede ser undefined
+                const landmarksCount = gesture.landmarks_count || {};
+                
+                // En la función showGestureDetails, actualiza la sección de landmarks:
+content.innerHTML = `
+    <div class="row">
+        <div class="col-md-6">
+            <h6>Información General</h6>
+            <table class="table table-dark table-sm">
+                <tr>
+                    <td><strong>Nombre:</strong></td>
+                    <td>${gesture.name || 'N/A'}</td>
+                </tr>
+                <tr>
+                    <td><strong>Descripción:</strong></td>
+                    <td>${gesture.description || 'Sin descripción'}</td>
+                </tr>
+                <tr>
+                    <td><strong>Categoría:</strong></td>
+                    <td><span class="badge bg-primary">${gesture.category || 'general'}</span></td>
+                </tr>
+                <tr>
+                    <td><strong>Fecha:</strong></td>
+                    <td>${gesture.created_at || 'N/A'}</td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-md-6">
+            <h6>Estadísticas</h6>
+            <table class="table table-dark table-sm">
+                <tr>
+                    <td><strong>Frames Totales:</strong></td>
+                    <td>${gesture.total_frames || 0}</td>
+                </tr>
+                <tr>
+                    <td><strong>Frames Válidos:</strong></td>
+                    <td>${gesture.valid_frames || 0}</td>
+                </tr>
+                <tr>
+                    <td><strong>Calidad Promedio:</strong></td>
+                    <td>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-success" style="width: ${(gesture.avg_quality || 0) * 100}%"></div>
                         </div>
-                        <div class="col-md-6">
-                            <h6>Estadísticas</h6>
-                            <table class="table table-dark table-sm">
-                                <tr>
-                                    <td><strong>Frames Totales:</strong></td>
-                                    <td>${gesture.total_frames}</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Frames Válidos:</strong></td>
-                                    <td>${gesture.valid_frames}</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Calidad Promedio:</strong></td>
-                                    <td>
-                                        <div class="progress" style="height: 8px;">
-                                            <div class="progress-bar bg-success" style="width: ${gesture.avg_quality * 100}%"></div>
-                                        </div>
-                                        <small>${(gesture.avg_quality * 100).toFixed(1)}%</small>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Video:</strong></td>
-                                    <td>
-                                        ${gesture.video_path ? 
-                                            '<span class="badge bg-success">Disponible</span>' : 
-                                            '<span class="badge bg-warning">No disponible</span>'
-                                        }
-                                    </td>
-                                </tr>
-                            </table>
-                        </div>
+                        <small>${((gesture.avg_quality || 0) * 100).toFixed(1)}%</small>
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong>Video:</strong></td>
+                    <td>
+                        ${gesture.video_path ? 
+                            '<span class="badge bg-success">Disponible</span>' : 
+                            '<span class="badge bg-warning">No disponible</span>'
+                        }
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    <div class="row mt-3">
+        <div class="col-12">
+            <h6>Landmarks Detectados</h6>
+            <div class="row text-center">
+                <div class="col-3">
+                    <div class="metric-card">
+                        <div class="metric-value text-success">${landmarksCount.left_hand || 0}%</div>
+                        <div class="metric-label">Mano Izquierda</div>
                     </div>
-                    <div class="row mt-3">
-                        <div class="col-12">
-                            <h6>Landmarks Detectados</h6>
-                            <div class="d-flex gap-2">
-                                <span class="badge bg-success">Mano Izq: ${gesture.landmarks_count.left_hand || 0}</span>
-                                <span class="badge bg-danger">Mano Der: ${gesture.landmarks_count.right_hand || 0}</span>
-                                <span class="badge bg-primary">Pose: ${gesture.landmarks_count.pose || 0}</span>
-                                <span class="badge bg-warning">Cara: ${gesture.landmarks_count.face || 0}</span>
-                            </div>
-                        </div>
+                </div>
+                <div class="col-3">
+                    <div class="metric-card">
+                        <div class="metric-value text-danger">${landmarksCount.right_hand || 0}%</div>
+                        <div class="metric-label">Mano Derecha</div>
                     </div>
-                    ${gesture.video_path ? `
-                    <div class="row mt-3">
-                        <div class="col-12">
-                            <h6>Vista Previa</h6>
-                            <div class="video-container" style="height: 200px;">
-                                <video src="${gesture.video_path}" controls class="w-100 h-100" style="object-fit: contain;"></video>
-                            </div>
-                        </div>
+                </div>
+                <div class="col-3">
+                    <div class="metric-card">
+                        <div class="metric-value text-primary">${landmarksCount.pose || 0}%</div>
+                        <div class="metric-label">Pose</div>
                     </div>
-                    ` : ''}
-                `;
-            }
+                </div>
+                <div class="col-3">
+                    <div class="metric-card">
+                        <div class="metric-value text-warning">${landmarksCount.face || 0}%</div>
+                        <div class="metric-label">Cara</div>
+                    </div>
+                </div>
+            </div>
+            ${gesture.landmarks_stats ? `
+            <div class="mt-2">
+                <small class="text-muted">
+                    Frames con detección: 
+                    Mano Izq: ${gesture.landmarks_stats.left_hand_frames || 0}, 
+                    Mano Der: ${gesture.landmarks_stats.right_hand_frames || 0}, 
+                    Pose: ${gesture.landmarks_stats.pose_frames || 0}
+                </small>
+            </div>
+            ` : ''}
+        </div>
+    </div>
+    ${gesture.video_path ? `
+    <div class="row mt-3">
+        <div class="col-12">
+            <h6>Vista Previa</h6>
+            <div class="video-container" style="height: 200px;">
+                <button class="btn btn-primary w-100 h-100" onclick="playGestureInModal('${gesture.video_path}', '${gesture.name}')">
+                    <i class="fas fa-play me-2"></i>Reproducir Video
+                </button>
+            </div>
+        </div>
+    </div>
+    ` : ''}
+`;
+    }
             
+            // Mostrar modal
             const modal = new bootstrap.Modal(detailsModal);
             modal.show();
             
         } else {
-            ModalManager.showError("Error", "No se pudieron cargar los detalles", result.error);
+            ModalManager.showError("Error", "No se pudieron cargar los detalles", result?.error || "Gesto no encontrado");
         }
     } catch (error) {
         ModalManager.hideLoading();
         ModalManager.showError("Error", "No se pudieron cargar los detalles", error.message);
+        console.error('❌ Error en showGestureDetails:', error);
     }
 }
 

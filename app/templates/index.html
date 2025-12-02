@@ -198,6 +198,306 @@
     color: var(--text-muted);
 }
 
+/* Sección educativa unificada */
+.education-section {
+    position: relative;
+    z-index: 1;
+    padding: 6rem 0;
+    background: rgba(0, 0, 0, 0.02);
+}
+
+[data-bs-theme="dark"] .education-section {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.education-header {
+    text-align: center;
+    margin-bottom: 4rem;
+}
+
+.education-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.education-subtitle {
+    font-size: 1.2rem;
+    color: var(--text-muted);
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* Grid principal unificado */
+.education-grid-main {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 3rem;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+/* Tarjetas unificadas */
+.education-card-unified {
+    background: var(--card-bg);
+    border-radius: 20px;
+    padding: 3rem;
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.08);
+    transition: all 0.4s ease;
+    border: 1px solid var(--border-color);
+    position: relative;
+    overflow: hidden;
+}
+
+.education-card-unified::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+}
+
+.education-card-unified:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+}
+
+.education-card-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.education-card-icon-main {
+    width: 70px;
+    height: 70px;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    color: white;
+    flex-shrink: 0;
+}
+
+.education-card-title-main {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--text-color);
+    margin: 0;
+}
+
+/* Grid de estadísticas mejorado */
+.stats-grid-unified {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 2rem;
+    margin: 2rem 0;
+}
+
+.stat-item-unified {
+    text-align: center;
+    padding: 2rem 1.5rem;
+    background: rgba(0, 176, 255, 0.05);
+    border-radius: 16px;
+    border: 2px solid rgba(0, 176, 255, 0.1);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-item-unified::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    transition: left 0.6s ease;
+}
+
+.stat-item-unified:hover::before {
+    left: 100%;
+}
+
+.stat-item-unified:hover {
+    transform: translateY(-5px);
+    border-color: rgba(0, 176, 255, 0.3);
+    box-shadow: 0 12px 30px rgba(0, 176, 255, 0.15);
+}
+
+.stat-number-unified {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: var(--primary-color);
+    margin-bottom: 0.75rem;
+    line-height: 1;
+    display: block;
+}
+
+.stat-label-unified {
+    font-size: 1rem;
+    color: var(--text-color);
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.stat-source-unified {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-style: italic;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(0, 176, 255, 0.2);
+}
+
+/* Fuentes verificadas unificadas */
+.sources-verified-unified {
+    display: inline-flex;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    background: rgba(52, 199, 89, 0.1);
+    border-radius: 12px;
+    border: 2px solid rgba(52, 199, 89, 0.2);
+    color: #34c759;
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-top: 2rem;
+}
+
+/* Listas unificadas */
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-top: 1.5rem;
+}
+
+.info-section {
+    background: rgba(0, 176, 255, 0.03);
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 1px solid rgba(0, 176, 255, 0.1);
+}
+
+.info-section-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.info-section-title i {
+    font-size: 1.1rem;
+}
+
+.fact-list-unified {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.fact-list-unified li {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid rgba(0, 176, 255, 0.1);
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    transition: all 0.3s ease;
+}
+
+.fact-list-unified li:last-child {
+    border-bottom: none;
+}
+
+.fact-list-unified li:hover {
+    background: rgba(0, 176, 255, 0.05);
+    border-radius: 8px;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+}
+
+.fact-list-unified i {
+    color: var(--primary-color);
+    margin-top: 0.2rem;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+}
+
+.fact-list-unified span {
+    color: var(--text-color);
+    line-height: 1.5;
+}
+
+/* Mitos y realidades unificado */
+.myth-reality-grid-unified {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.myth-reality-item-unified {
+    display: flex;
+    gap: 1rem;
+    padding: 1.5rem;
+    background: rgba(0, 176, 255, 0.05);
+    border-radius: 12px;
+    border-left: 4px solid var(--primary-color);
+    transition: all 0.3s ease;
+}
+
+.myth-reality-item-unified:hover {
+    transform: translateX(5px);
+    background: rgba(0, 176, 255, 0.08);
+}
+
+.myth-reality-icon-unified {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    margin-top: 0.2rem;
+}
+
+.myth-icon-unified {
+    background: rgba(255, 59, 48, 0.1);
+    color: #ff3b30;
+}
+
+.reality-icon-unified {
+    background: rgba(52, 199, 89, 0.1);
+    color: #34c759;
+}
+
+.myth-reality-content-unified h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.myth-reality-content-unified p {
+    margin: 0;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
 /* Ajustes para modo claro */
 [data-bs-theme="light"] .hero-badge {
     background: rgba(0, 102, 204, 0.1);
@@ -230,6 +530,50 @@
         gap: 2rem;
         margin-top: 3rem;
     }
+    
+    .education-section {
+        padding: 4rem 0;
+    }
+    
+    .education-title {
+        font-size: 2rem;
+    }
+    
+    .education-card-unified {
+        padding: 2rem;
+    }
+    
+    .education-card-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+    }
+    
+    .stats-grid-unified {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+    
+    .stat-item-unified {
+        padding: 1.5rem 1rem;
+    }
+    
+    .stat-number-unified {
+        font-size: 2rem;
+    }
+    
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .myth-reality-grid-unified {
+        grid-template-columns: 1fr;
+    }
+    
+    .myth-reality-item-unified {
+        flex-direction: column;
+        text-align: center;
+    }
 }
 
 @media (max-width: 576px) {
@@ -240,6 +584,18 @@
     
     .hero-features {
         gap: 1.5rem;
+    }
+    
+    .stats-grid-unified {
+        grid-template-columns: 1fr;
+    }
+    
+    .education-card-unified {
+        padding: 1.5rem;
+    }
+    
+    .education-card-title-main {
+        font-size: 1.5rem;
     }
 }
 </style>
@@ -319,6 +675,183 @@
                     </div>
                     <div class="feature-label">Disponible</div>
                     <div class="feature-value">24/7</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Sección Educativa Unificada -->
+<section class="education-section">
+    <div class="container">
+        <div class="education-header">
+            <h2 class="education-title">Conoce el Lenguaje de Señas</h2>
+            <p class="education-subtitle">Información importante para entender mejor la comunidad sorda y su forma de comunicación</p>
+        </div>
+        
+        <div class="education-grid-main">
+            <!-- Tarjeta de Estadísticas -->
+            <div class="education-card-unified">
+                <div class="education-card-header">
+                    <div class="education-card-icon-main">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <div>
+                        <h3 class="education-card-title-main">Estadísticas Reales Verificadas</h3>
+                    </div>
+                </div>
+                
+                <div class="stats-grid-unified">
+                    <div class="stat-item-unified">
+                        <span class="stat-number-unified">1.500M</span>
+                        <div class="stat-label-unified">Personas con pérdida auditiva</div>
+                        <div class="stat-source-unified">OMS, 2023</div>
+                    </div>
+                    
+                    <div class="stat-item-unified">
+                        <span class="stat-number-unified">200+</span>
+                        <div class="stat-label-unified">Lenguas de señas diferentes</div>
+                        <div class="stat-source-unified">Federación Mundial de Sordos</div>
+                    </div>
+                    
+                    <div class="stat-item-unified">
+                        <span class="stat-number-unified">5%</span>
+                        <div class="stat-label-unified">Niños sordos con educación en LSE</div>
+                        <div class="stat-source-unified">Naciones Unidas</div>
+                    </div>
+                    
+                    <div class="stat-item-unified">
+                        <span class="stat-number-unified">90%</span>
+                        <div class="stat-label-unified">Niños sordos con padres oyentes</div>
+                        <div class="stat-source-unified">NIDCD - NIH</div>
+                    </div>
+                </div>
+                
+                <div class="sources-verified-unified">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <span>Fuentes verificadas: OMS, Federación Mundial de Sordos, Naciones Unidas</span>
+                </div>
+            </div>
+            
+            <!-- Tarjeta de Conceptos y Buenas Prácticas -->
+            <div class="education-card-unified">
+                <div class="education-card-header">
+                    <div class="education-card-icon-main">
+                        <i class="fas fa-hands"></i>
+                    </div>
+                    <div>
+                        <h3 class="education-card-title-main">Información Esencial</h3>
+                    </div>
+                </div>
+                
+                <div class="info-grid">
+                    <div class="info-section">
+                        <h4 class="info-section-title">
+                            <i class="fas fa-lightbulb"></i>
+                            Conceptos Básicos
+                        </h4>
+                        <ul class="fact-list-unified">
+                            <li>
+                                <i class="fas fa-hand-point-up"></i>
+                                <span>Utiliza las manos, expresiones faciales y movimiento corporal</span>
+                            </li>
+                            <li>
+                                <i class="fas fa-eye"></i>
+                                <span>Es una lengua visual-espacial, no oral-auditiva</span>
+                            </li>
+                            <li>
+                                <i class="fas fa-globe-americas"></i>
+                                <span>Cada país tiene su propio lenguaje de señas (LSM, ASL, LSE, etc.)</span>
+                            </li>
+                            <li>
+                                <i class="fas fa-brain"></i>
+                                <span>Se procesa en las mismas áreas cerebrales que cualquier otro lenguaje</span>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <div class="info-section">
+                        <h4 class="info-section-title">
+                            <i class="fas fa-heart"></i>
+                            Buenas Prácticas
+                        </h4>
+                        <ul class="fact-list-unified">
+                            <li>
+                                <i class="fas fa-user"></i>
+                                <span>Mantén contacto visual directo</span>
+                            </li>
+                            <li>
+                                <i class="fas fa-hand-paper"></i>
+                                <span>Asegúrate de que tus manos y rostro sean visibles</span>
+                            </li>
+                            <li>
+                                <i class="fas fa-comment"></i>
+                                <span>Habla directamente a la persona, no al intérprete</span>
+                            </li>
+                            <li>
+                                <i class="fas fa-lightbulb"></i>
+                                <span>Usa gestos naturales y expresiones faciales</span>
+                            </li>
+                            <li>
+                                <i class="fas fa-pen"></i>
+                                <span>Si es necesario, escribe en papel o dispositivo</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tarjeta de Mitos y Realidades -->
+            <div class="education-card-unified">
+                <div class="education-card-header">
+                    <div class="education-card-icon-main">
+                        <i class="fas fa-question-circle"></i>
+                    </div>
+                    <div>
+                        <h3 class="education-card-title-main">Mitos y Realidades</h3>
+                    </div>
+                </div>
+                
+                <div class="myth-reality-grid-unified">
+                    <div class="myth-reality-item-unified">
+                        <div class="myth-reality-icon-unified myth-icon-unified">
+                            <i class="fas fa-times"></i>
+                        </div>
+                        <div class="myth-reality-content-unified">
+                            <h4>Mito: El lenguaje de señas es universal</h4>
+                            <p>Realidad: Cada país tiene su propio lenguaje de señas, con gramática y vocabulario distintos.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="myth-reality-item-unified">
+                        <div class="myth-reality-icon-unified reality-icon-unified">
+                            <i class="fas fa-check"></i>
+                        </div>
+                        <div class="myth-reality-content-unified">
+                            <h4>Mito: Las personas sordas pueden leer los labios perfectamente</h4>
+                            <p>Realidad: Solo el 30-40% de los sonidos del habla son visibles en los labios, haciendo difícil la comprensión completa.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="myth-reality-item-unified">
+                        <div class="myth-reality-icon-unified myth-icon-unified">
+                            <i class="fas fa-times"></i>
+                        </div>
+                        <div class="myth-reality-content-unified">
+                            <h4>Mito: Todas las personas sordas saben lenguaje de señas</h4>
+                            <p>Realidad: Muchas personas sordas no han tenido acceso a educación en lenguaje de señas.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="myth-reality-item-unified">
+                        <div class="myth-reality-icon-unified reality-icon-unified">
+                            <i class="fas fa-check"></i>
+                        </div>
+                        <div class="myth-reality-content-unified">
+                            <h4>Mito: El lenguaje de señas es solo gestos con las manos</h4>
+                            <p>Realidad: Incluye expresiones faciales, movimiento corporal y estructura gramatical compleja.</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
